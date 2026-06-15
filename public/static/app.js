@@ -263,6 +263,13 @@ function addMessage(html, type = 'bot', delay = 0) {
       container.appendChild(wrap);
       showTyping(false);
       scrollToBottom();
+
+      // Si hay prefill pendiente, aplicarlo ahora que el DOM ya tiene el formulario
+      if (_pendingPrefill) {
+        // Pequeño tick para asegurar que el navegador pintó el DOM
+        requestAnimationFrame(() => applyPrefill(_pendingPrefill));
+      }
+
       resolve(wrap);
     }, delay);
   });
@@ -277,41 +284,30 @@ function typewriterMsg(html, type = 'bot', delay = 0) {
   });
 }
 
+// ── Datos de prefill para aplicar tras insertar el formulario ─
+let _pendingPrefill = null;
+
 // ── Formulario de registro clínico ───────────────────────────
 function buildFormCard(prefill = {}) {
-  const p = prefill;
-  const prov  = p.prov_eess || '';
-  const dist  = p.dist_eess || '';
-  const sexo  = p.sexo || 'M';
-  const edad  = p.edadMeses || '';
-  const hb    = p.hemoglobina || '';
-  const pREN  = p.provinciaREN || '';
-  const dREN  = p.distritoREN || '';
-  const alt   = p.alturaREN || '';
+  // Guardar prefill para aplicarlo después de que el DOM esté listo
+  _pendingPrefill = prefill;
 
-  const toggl = (id, val, label) => `
+  const toggl = (id, label) => `
     <div class="flex items-center justify-between py-1.5">
       <span class="text-xs text-gray-700">${label}</span>
       <label class="toggle-switch">
-        <input type="checkbox" id="${id}" ${val ? 'checked' : ''} />
+        <input type="checkbox" id="${id}" />
         <span class="toggle-slider"></span>
       </label>
     </div>`;
 
+  // Generar todas las opciones de provincia (sin preselección - se hará por JS)
   const provOptions = Object.keys(punoData).map(k =>
-    `<option value="${k}" ${k === prov ? 'selected' : ''}>${k}</option>`
-  ).join('');
-
-  const distOptions = (punoData[prov] || []).map(d =>
-    `<option value="${d}" ${d === dist ? 'selected' : ''}>${d}</option>`
-  ).join('');
-
-  const distRENOptions = (punoData[pREN] || []).map(d =>
-    `<option value="${d}" ${d === dREN ? 'selected' : ''}>${d}</option>`
+    `<option value="${k}">${k}</option>`
   ).join('');
 
   return `
-  <div class="chat-card w-full max-w-lg">
+  <div class="chat-card w-full max-w-lg" id="form-card">
     <div class="card-header">
       <i class="fas fa-clipboard-list text-sm"></i>
       <h3>Agente 1 · Registro Clínico — Nuevo caso</h3>
@@ -329,7 +325,7 @@ function buildFormCard(prefill = {}) {
         <div>
           <label class="block text-xs text-gray-600 mb-1">Distrito EESS</label>
           <select id="f-dist-eess" class="form-select">
-            <option value="">Seleccionar…</option>${distOptions}
+            <option value="">Seleccionar…</option>
           </select>
         </div>
       </div>
@@ -340,33 +336,33 @@ function buildFormCard(prefill = {}) {
         <div>
           <label class="block text-xs text-gray-600 mb-1">Sexo</label>
           <select id="f-sexo" class="form-select">
-            <option value="F" ${sexo==='F'?'selected':''}>Femenino (F)</option>
-            <option value="M" ${sexo==='M'?'selected':''}>Masculino (M)</option>
+            <option value="F">Femenino (F)</option>
+            <option value="M">Masculino (M)</option>
           </select>
         </div>
         <div>
           <label class="block text-xs text-gray-600 mb-1">Edad (meses)</label>
-          <input id="f-edad" type="number" step="0.01" min="0" max="180" class="form-input" placeholder="ej. 53.62" value="${edad}" />
+          <input id="f-edad" type="number" step="0.01" min="0" max="180" class="form-input" placeholder="ej. 53.62" />
         </div>
       </div>
 
       <!-- Programas y controles -->
       <p class="form-section-title mt-3"><i class="fas fa-shield-alt mr-1"></i>Programas y controles sociales</p>
       <div class="grid grid-cols-2 gap-x-4">
-        ${toggl('f-juntos', p.juntos, 'Juntos')}
-        ${toggl('f-sis', p.sis, 'SIS')}
-        ${toggl('f-qaliwarma', p.qaliwarma, 'Qali Warma')}
-        ${toggl('f-cred', p.cred, 'Control CRED')}
-        ${toggl('f-suplementacion', p.suplementacion, 'Suplementación Fe')}
-        ${toggl('f-consejeria', p.consejeria, 'Consejería')}
-        ${toggl('f-sesion', p.sesion, 'Sesión demostrativa')}
+        ${toggl('f-juntos', 'Juntos')}
+        ${toggl('f-sis', 'SIS')}
+        ${toggl('f-qaliwarma', 'Qali Warma')}
+        ${toggl('f-cred', 'Control CRED')}
+        ${toggl('f-suplementacion', 'Suplementación Fe')}
+        ${toggl('f-consejeria', 'Consejería')}
+        ${toggl('f-sesion', 'Sesión demostrativa')}
       </div>
 
       <!-- Datos clínicos -->
       <p class="form-section-title mt-3"><i class="fas fa-vial mr-1"></i>Datos clínicos</p>
       <div>
         <label class="block text-xs text-gray-600 mb-1">Hemoglobina observada (g/dL)</label>
-        <input id="f-hb" type="number" step="0.1" min="0" max="25" class="form-input" placeholder="ej. 13.7" value="${hb}" />
+        <input id="f-hb" type="number" step="0.1" min="0" max="25" class="form-input" placeholder="ej. 13.7" />
       </div>
 
       <!-- Residencia (REN) -->
@@ -375,19 +371,19 @@ function buildFormCard(prefill = {}) {
         <div>
           <label class="block text-xs text-gray-600 mb-1">Provincia REN</label>
           <select id="f-prov-ren" class="form-select" onchange="updateDist('f-prov-ren','f-dist-ren'); updateAltitud()">
-            <option value="">Seleccionar…</option>${Object.keys(punoData).map(k => `<option value="${k}" ${k===pREN?'selected':''}>${k}</option>`).join('')}
+            <option value="">Seleccionar…</option>${provOptions}
           </select>
         </div>
         <div>
           <label class="block text-xs text-gray-600 mb-1">Distrito REN</label>
           <select id="f-dist-ren" class="form-select" onchange="updateAltitud()">
-            <option value="">Seleccionar…</option>${distRENOptions}
+            <option value="">Seleccionar…</option>
           </select>
         </div>
       </div>
       <div>
         <label class="block text-xs text-gray-600 mb-1">Altitud residencia (m.s.n.m.)</label>
-        <input id="f-altura" type="number" step="1" min="0" max="6000" class="form-input" placeholder="ej. 3877" value="${alt}" />
+        <input id="f-altura" type="number" step="1" min="0" max="6000" class="form-input" placeholder="ej. 3877" />
       </div>
 
       <button class="btn-primary mt-4" onclick="submitForm()">
@@ -398,6 +394,55 @@ function buildFormCard(prefill = {}) {
       </p>
     </div>
   </div>`;
+}
+
+// ── Aplicar prefill al formulario después de insertar en el DOM ──
+function applyPrefill(p) {
+  if (!p || !Object.keys(p).length) return;
+
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val !== undefined && val !== '') el.value = val;
+  };
+  const setChk = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!val;
+  };
+
+  // Provincia EESS → poblar distritos → seleccionar distrito
+  if (p.prov_eess) {
+    setVal('f-prov-eess', p.prov_eess);
+    updateDist('f-prov-eess', 'f-dist-eess');
+    if (p.dist_eess) setVal('f-dist-eess', p.dist_eess);
+  }
+
+  // Sexo y edad
+  if (p.sexo)      setVal('f-sexo', p.sexo);
+  if (p.edadMeses) setVal('f-edad', p.edadMeses);
+
+  // Toggles
+  setChk('f-juntos',        p.juntos);
+  setChk('f-sis',           p.sis);
+  setChk('f-qaliwarma',     p.qaliwarma);
+  setChk('f-cred',          p.cred);
+  setChk('f-suplementacion',p.suplementacion);
+  setChk('f-consejeria',    p.consejeria);
+  setChk('f-sesion',        p.sesion);
+
+  // Hemoglobina
+  if (p.hemoglobina) setVal('f-hb', p.hemoglobina);
+
+  // Provincia REN → poblar distritos → seleccionar distrito
+  if (p.provinciaREN) {
+    setVal('f-prov-ren', p.provinciaREN);
+    updateDist('f-prov-ren', 'f-dist-ren');
+    if (p.distritoREN) setVal('f-dist-ren', p.distritoREN);
+  }
+
+  // Altitud
+  if (p.alturaREN) setVal('f-altura', p.alturaREN);
+
+  _pendingPrefill = null;
 }
 
 // Actualizar distritos según provincia
@@ -418,15 +463,48 @@ window.updateAltitud = function() {
   }
 };
 
+// ── Helpers de validación visual ─────────────────────────────
+function markError(id, hasError) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (hasError) {
+    el.style.borderColor = '#ef4444';
+    el.style.boxShadow  = '0 0 0 3px rgba(239,68,68,0.15)';
+  } else {
+    el.style.borderColor = '';
+    el.style.boxShadow  = '';
+  }
+}
+
+function clearErrors() {
+  ['f-prov-eess','f-dist-eess','f-edad','f-hb','f-prov-ren','f-dist-ren','f-altura'].forEach(id => markError(id, false));
+  const msg = document.getElementById('form-error-msg');
+  if (msg) msg.remove();
+}
+
+function showFormError(text) {
+  let msg = document.getElementById('form-error-msg');
+  if (!msg) {
+    msg = document.createElement('div');
+    msg.id = 'form-error-msg';
+    msg.className = 'flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 mt-2';
+    const btn = document.querySelector('#form-card .btn-primary');
+    if (btn) btn.parentNode.insertBefore(msg, btn);
+  }
+  msg.innerHTML = `<i class="fas fa-exclamation-circle mt-0.5 flex-shrink-0"></i><span>${text}</span>`;
+}
+
 // ── Enviar formulario ─────────────────────────────────────────
 window.submitForm = async function() {
   const get = id => document.getElementById(id);
   const chk = id => document.getElementById(id)?.checked ? 1 : 0;
 
+  clearErrors();
+
   const datos = {
-    prov_eess:     get('f-prov-eess')?.value,
-    dist_eess:     get('f-dist-eess')?.value,
-    sexo:          get('f-sexo')?.value,
+    prov_eess:     get('f-prov-eess')?.value?.trim(),
+    dist_eess:     get('f-dist-eess')?.value?.trim(),
+    sexo:          get('f-sexo')?.value?.trim() || 'F',
     edadMeses:     parseFloat(get('f-edad')?.value),
     juntos:        chk('f-juntos'),
     sis:           chk('f-sis'),
@@ -436,23 +514,34 @@ window.submitForm = async function() {
     consejeria:    chk('f-consejeria'),
     sesion:        chk('f-sesion'),
     hemoglobina:   parseFloat(get('f-hb')?.value),
-    provinciaREN:  get('f-prov-ren')?.value,
-    distritoREN:   get('f-dist-ren')?.value,
+    provinciaREN:  get('f-prov-ren')?.value?.trim(),
+    distritoREN:   get('f-dist-ren')?.value?.trim(),
     alturaREN:     parseFloat(get('f-altura')?.value)
   };
 
-  // Validaciones
-  if (!datos.prov_eess || !datos.dist_eess) return alert('Por favor complete la provincia y distrito del establecimiento.');
-  if (isNaN(datos.edadMeses) || datos.edadMeses <= 0) return alert('Ingrese una edad válida en meses.');
-  if (isNaN(datos.hemoglobina) || datos.hemoglobina <= 0) return alert('Ingrese un valor válido de hemoglobina.');
-  if (!datos.provinciaREN || !datos.distritoREN) return alert('Complete la provincia y distrito de residencia.');
-  if (isNaN(datos.alturaREN) || datos.alturaREN <= 0) return alert('Ingrese la altitud de residencia.');
+  // ── Validar campos requeridos con feedback visual ──────────
+  let errors = [];
+
+  if (!datos.prov_eess) { markError('f-prov-eess', true); errors.push('Provincia EESS'); }
+  if (!datos.dist_eess) { markError('f-dist-eess', true); errors.push('Distrito EESS'); }
+  if (isNaN(datos.edadMeses) || datos.edadMeses <= 0) { markError('f-edad', true); errors.push('Edad en meses'); }
+  if (isNaN(datos.hemoglobina) || datos.hemoglobina <= 0) { markError('f-hb', true); errors.push('Hemoglobina'); }
+  if (!datos.provinciaREN) { markError('f-prov-ren', true); errors.push('Provincia REN'); }
+  if (!datos.distritoREN)  { markError('f-dist-ren', true); errors.push('Distrito REN'); }
+  if (isNaN(datos.alturaREN) || datos.alturaREN <= 0) { markError('f-altura', true); errors.push('Altitud de residencia'); }
+
+  if (errors.length > 0) {
+    showFormError(`Completa los siguientes campos obligatorios: <strong>${errors.join(', ')}</strong>.`);
+    // Scroll al formulario
+    document.getElementById('form-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
 
   state.caseData = datos;
   state.step = 'registered';
 
   // Deshabilitar formulario
-  document.querySelectorAll('.chat-card button, .chat-card input, .chat-card select').forEach(el => {
+  document.querySelectorAll('#form-card button, #form-card input, #form-card select').forEach(el => {
     el.disabled = true;
     el.style.opacity = '0.7';
   });
