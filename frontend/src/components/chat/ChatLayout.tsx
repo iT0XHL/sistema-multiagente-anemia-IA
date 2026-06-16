@@ -14,11 +14,11 @@ export default function ChatLayout({ children, sidebar }: Props) {
       <ChatHeader />
       <AcademicWarning />
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex flex-1 flex-col min-h-0">
+        <div className="flex flex-1 flex-col min-h-0 min-w-0">
           {children}
         </div>
         {sidebar && (
-          <aside className="hidden w-48 flex-shrink-0 border-l border-slate-200 bg-white/50 backdrop-blur lg:block overflow-y-auto">
+          <aside className="hidden w-80 flex-shrink-0 border-l border-slate-200 bg-white lg:flex lg:flex-col xl:w-96">
             {sidebar}
           </aside>
         )}

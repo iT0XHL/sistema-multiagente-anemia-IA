@@ -29,6 +29,13 @@ export default function MobileAgentDrawer({ agents }: Props) {
     return () => window.removeEventListener('keydown', handler)
   }, [open])
 
+  // Comando /agentes y botón «Ver agentes» abren el panel en móvil.
+  useEffect(() => {
+    const open = () => setOpen(true)
+    window.addEventListener('agents:open', open)
+    return () => window.removeEventListener('agents:open', open)
+  }, [])
+
   const activeCount = displayAgents.filter(a => a.status === 'running').length
   const doneCount = displayAgents.filter(a => a.status === 'completed').length
   const panelId = 'mobile-agent-panel'

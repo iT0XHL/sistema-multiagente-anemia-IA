@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { FlaskConical, Loader2, MapPin, Send, User, Shield, TestTube, Home } from 'lucide-react'
+import { Cpu, FlaskConical, Loader2, MapPin, Send, User, Shield, TestTube, Home } from 'lucide-react'
 
 import type { ClinicalFormData } from '../../types'
 import { getAltitud, getDistritos, provincias } from '../../data/puno'
@@ -129,7 +129,7 @@ export default function ClinicalFormCard({ value, onChange, onSubmit, onLoadExam
     >
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100">
         <span className="text-xs font-medium text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">
-          Agente 1 · Formulario clínico
+          Agente 1 · Registro Clínico
         </span>
         <span className="text-xs text-slate-400 ml-auto">Nuevo caso</span>
       </div>
@@ -186,23 +186,39 @@ export default function ClinicalFormCard({ value, onChange, onSubmit, onLoadExam
         </div>
         <InputField label="Altitud residencia (m.s.n.m.)" value={value.AlturaREN} onChange={(v) => onChange({ AlturaREN: parseFloat(v) || 0 })} type="number" step="1" placeholder="Automático" suffix="msnm" />
 
-        <div className="flex items-center gap-2 pt-1">
-          <div className="flex-1 flex flex-col gap-1.5">
-            {errors.length > 0 && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[10px] text-red-700" role="alert">
-                <strong>Campos obligatorios:</strong> {errors.join(', ')}
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1 text-xs py-2">
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                {loading ? 'Procesando...' : 'Analizar caso'}
-              </button>
-              <button onClick={onLoadExample} disabled={loading} className="btn-ghost text-xs py-2 px-3">
-                <FlaskConical size={12} /> Ejemplo
-              </button>
+        <SectionTitle icon={Cpu} text="Modelo de Machine Learning" />
+        <div className="grid grid-cols-2 gap-2">
+          {(['random_forest', 'xgboost'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => onChange({ Modelo: m })}
+              disabled={loading}
+              aria-pressed={value.Modelo === m}
+              className={`rounded-xl border px-3 py-2 text-xs font-medium transition disabled:opacity-50 ${
+                value.Modelo === m
+                  ? 'border-teal-500 bg-teal-50 text-teal-700 ring-1 ring-teal-200'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {m === 'random_forest' ? 'Random Forest' : 'XGBoost'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2 pt-2">
+          {errors.length > 0 && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[10px] text-red-700" role="alert">
+              <strong>Campos obligatorios:</strong> {errors.join(', ')}
             </div>
-          </div>
+          )}
+          <button onClick={handleSubmit} disabled={loading} className="btn-primary w-full text-xs py-2.5">
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            {loading ? 'Procesando...' : 'Analizar caso con agentes'}
+          </button>
+          <button onClick={onLoadExample} disabled={loading} className="btn-ghost w-full text-xs py-2">
+            <FlaskConical size={12} /> Cargar caso ejemplo (Juliaca)
+          </button>
         </div>
       </div>
     </motion.div>

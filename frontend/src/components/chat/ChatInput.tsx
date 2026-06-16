@@ -1,13 +1,18 @@
 import { motion } from 'framer-motion'
-import { FlaskConical, RotateCcw, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 import { useEffect, useRef } from 'react'
+
+import QuickCommands from './QuickCommands'
 
 interface Props {
   value: string
   onChange: (val: string) => void
   onSubmit: () => void
   onExampleCase: () => void
-  onNewConsultation: () => void
+  onNewCase: () => void
+  onAnalyze: () => void
+  onViewAgents: () => void
+  onDashboard: () => void
   disabled?: boolean
   showActions?: boolean
 }
@@ -17,7 +22,10 @@ export default function ChatInput({
   onChange,
   onSubmit,
   onExampleCase,
-  onNewConsultation,
+  onNewCase,
+  onAnalyze,
+  onViewAgents,
+  onDashboard,
   disabled,
   showActions,
 }: Props) {
@@ -33,28 +41,22 @@ export default function ChatInput({
   }
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-lg" role="complementary" aria-label="Entrada de chat">
-      <div className="mx-auto max-w-3xl px-4 py-3">
+    <div
+      className="sticky bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-lg"
+      role="complementary"
+      aria-label="Entrada de chat"
+    >
+      <div className="mx-auto max-w-4xl px-3 py-3 sm:px-4">
         {showActions && (
-          <div className="mb-2 flex items-center justify-center gap-3" role="toolbar" aria-label="Acciones rápidas">
-            <button
-              onClick={onExampleCase}
+          <div className="mb-2.5">
+            <QuickCommands
+              onExampleCase={onExampleCase}
+              onNewCase={onNewCase}
+              onAnalyze={onAnalyze}
+              onViewAgents={onViewAgents}
+              onDashboard={onDashboard}
               disabled={disabled}
-              className="text-xs text-teal-600 hover:text-teal-800 flex items-center gap-1 transition disabled:opacity-40"
-              aria-label="Cargar caso de ejemplo de Juliaca"
-            >
-              <FlaskConical size={12} aria-hidden="true" />
-              Cargar caso ejemplo (Juliaca)
-            </button>
-            <button
-              onClick={onNewConsultation}
-              disabled={disabled}
-              className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition disabled:opacity-40"
-              aria-label="Iniciar nueva consulta"
-            >
-              <RotateCcw size={12} aria-hidden="true" />
-              Nueva consulta
-            </button>
+            />
           </div>
         )}
         <form onSubmit={handleSubmit} className="flex items-center gap-2" role="form" aria-label="Formulario de mensaje">
@@ -63,9 +65,9 @@ export default function ChatInput({
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Escribe un mensaje o pregunta..."
+            placeholder="Escribe un mensaje o un comando (ej. /ayuda)…"
             disabled={disabled}
-            aria-label="Escribe un mensaje"
+            aria-label="Escribe un mensaje o comando"
             className="flex-1 rounded-full border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 transition focus:border-teal-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-200 disabled:opacity-50"
           />
           <motion.button

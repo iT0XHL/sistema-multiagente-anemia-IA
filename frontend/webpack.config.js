@@ -78,6 +78,15 @@ module.exports = (_, argv) => {
       static: { directory: path.join(__dirname, 'public') },
       historyApiFallback: true, // soporte para rutas de React Router
       hot: false,
+      // La ruta del proyecto contiene "!" (¡KEEP OUT!), carácter que Webpack
+      // reserva como separador de loaders. webpack-dev-server inyecta su
+      // "client" (recarga en vivo + overlay) por RUTA ABSOLUTA; al contener "!"
+      // rompe la compilación ("Can't resolve 'H:\...KEEP OUT'"). Por eso se
+      // desactivan client/liveReload: el servidor sirve la app igualmente y los
+      // cambios se ven recargando el navegador (Ctrl/Cmd+R). En Docker (/app,
+      // sin "!") pueden reactivarse. Producción (npm run build) no se ve afectada.
+      client: false,
+      liveReload: false,
       port: 3000,
       host: '0.0.0.0',
     },

@@ -27,5 +27,7 @@ COPY data/ ./data/
 
 EXPOSE 8000
 
-# Entrena los modelos si faltan y arranca la API.
-CMD ["sh", "-c", "python ml/train_random_forest.py || true; uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"]
+# Entrena cada modelo SOLO si falta su artefacto (con ./ml/saved_models montado,
+# reutiliza los modelos existentes y arranca al instante). `exec` deja a uvicorn
+# como PID 1 para un apagado limpio (SIGTERM de `docker compose down`).
+CMD ["sh", "-c", "[ -f ml/saved_models/random_forest.joblib ] || python ml/train_random_forest.py; [ -f ml/saved_models/xgboost.joblib ] || python ml/train_xgboost.py; exec uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"]

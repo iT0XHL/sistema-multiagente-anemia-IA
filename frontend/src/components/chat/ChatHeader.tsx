@@ -3,7 +3,7 @@ import { HeartPulse } from 'lucide-react'
 export default function ChatHeader() {
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-lg shadow-teal-900/20" role="banner">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur shadow-inner" aria-hidden="true">
           <HeartPulse size={20} className="text-white" />
         </div>
