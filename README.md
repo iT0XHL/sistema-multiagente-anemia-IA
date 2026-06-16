@@ -1,89 +1,136 @@
 # AnemIA · Asistente Clínico para Anemia Infantil
 
-## Descripción del Proyecto
+Sistema multiagente con **Machine Learning** y **XAI** para el apoyo al diagnóstico
+de anemia infantil en la región altoandina de **Puno, Perú**, donde la altitud
+distorsiona la interpretación de la hemoglobina.
 
-Prototipo académico de un asistente conversacional clínico tipo chatbot para el diagnóstico de anemia infantil en la región de Puno, Perú. Implementa un sistema multiagente especializado con lógica de ajuste por altitud, diagnóstico estimado por ML simulado, explicabilidad XAI y recomendaciones terapéuticas MINSA.
-
-**Contexto académico:** Trabajo de investigación sobre anemia infantil en zonas altoandinas del Perú, donde la altitud geográfica distorsiona la interpretación de hemoglobina.
-
-> ⚠️ **PROTOTIPO ACADÉMICO.** No reemplaza el diagnóstico ni el tratamiento realizado por profesionales de salud. Toda recomendación debe ser validada por personal médico autorizado.
-
----
-
-## Sistema Multiagente (6 Agentes)
-
-| Agente | Función |
-|--------|---------|
-| Agente 1 · Registro Clínico | Recibe y valida los datos del caso clínico |
-| Agente 2 · Clínico-Contextual | Calcula Hb corregida por altitud (OMS 2024/MINSA) |
-| Agente 3 · Predictivo ML | Estima diagnóstico (Normal/Leve/Moderada/Severa) |
-| Agente 4 · Explicabilidad XAI | Genera valores SHAP simulados de importancia de variables |
-| Agente 5 · Terapéutico | Propone recomendaciones referenciales MINSA-CRED |
-| Agente 6 · Coordinador Reporte | Consolida reporte clínico unificado descargable |
+> ⚠️ **PROTOTIPO ACADÉMICO.** No reemplaza el diagnóstico ni el tratamiento realizado
+> por profesionales de salud. Toda recomendación debe ser validada por personal médico
+> autorizado.
 
 ---
 
-## Variables del Dataset Real
+## Arquitectura (tres capas)
 
-### Entrada
-- `Prov_EESS`, `Dist_EESS` — Establecimiento de salud
-- `Sexo`, `EdadMeses` — Datos del niño
-- `Juntos`, `SIS`, `Qaliwarma`, `Cred`, `Suplementacion`, `Consejeria`, `Sesion` (0/1)
-- `Hemoglobina` — Valor observado (g/dL)
-- `ProvinciaREN`, `DistritoREN`, `AlturaREN` — Residencia del niño
-
-### Derivadas
-- `Hbc` — Hemoglobina corregida por altitud
-- `Dx_anemia` — Normal / AnemiaLeve / AnemiaModerada / AnemiaSevera
-
----
-
-## Caso de Ejemplo Precargado (Juliaca)
+- **Frontend:** React + TypeScript + TSX + **Webpack 5** + Tailwind CSS (mobile-first).
+- **Backend:** FastAPI (Python) + SQLAlchemy + PostgreSQL, servido con **Uvicorn**.
+- **Capa inteligente:** sistema multiagente + ML (Scikit-learn / XGBoost) + XAI (SHAP / LIME).
+- **Entorno Python:** **`uv`** + `.venv`. **Docker Compose** para el sistema completo.
 
 ```
-Prov_EESS: SANROMAN    | Dist_EESS: JULIACA
-Sexo: F                | EdadMeses: 53.62
-Juntos: 0              | SIS: 1
-Qaliwarma: 0           | Cred: 1
-Suplementacion: 1      | Consejeria: 0
-Sesion: 0              | Hemoglobina: 13.7 g/dL
-ProvinciaREN: SANROMAN | DistritoREN: JULIACA
-AlturaREN: 3877 m.s.n.m.
+frontend/ (React+Webpack :3000)  →  backend/ (FastAPI :8000)  →  agents/ + ml/ + explainability/  →  PostgreSQL :5432
+```
 
-→ Hbc ≈ 11.40 g/dL (ajuste -2.30 g/dL)
-→ Diagnóstico: Normal (Bajo riesgo)
+Detalle en [`docs/architecture.md`](docs/architecture.md).
+
+---
+
+## Sistema multiagente (6 + orquestador)
+
+| # | Agente | Función |
+|---|--------|---------|
+| 1 | Data Agent (Registro Clínico) | Valida los datos del caso. |
+| 2 | Preprocessing Agent (Clínico-Contextual) | Calcula la Hb corregida por altitud (OMS 2024 / MINSA). |
+| 3 | Prediction Agent (Predictivo ML) | Estima la severidad (Normal/Leve/Moderada/Severa). |
+| 4 | Explainability Agent (XAI) | Genera importancias SHAP y LIME. |
+| 5 | Recommendation Agent (Terapéutico) | Recomendaciones referenciales MINSA-CRED. |
+| 6 | Monitoring Agent (Coordinador) | Audita tiempos y consolida el reporte. |
+| — | Orchestrator Agent | Coordina el flujo y arma el reporte unificado. |
+
+---
+
+## Cómo ejecutar
+
+### Opción A · Docker (recomendado)
+```bash
+docker compose up --build      # el .env único de la raíz ya está incluido
+```
+- Frontend → http://localhost:3000
+- API (Swagger) → http://localhost:8000/docs
+
+### Opción B · Local
+
+**Backend + ML (Python con `uv`):**
+```bash
+uv venv
+uv pip install -r requirements.txt
+uv run python ml/train_random_forest.py
+uv run python ml/train_xgboost.py
+uv run uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Frontend (React + Webpack):**
+```bash
+cd frontend
+npm install
+npm start            # http://localhost:3000
+```
+
+> 📋 Comandos completos y guía de prueba manual en **[`COMANDOS_EJECUCION.md`](COMANDOS_EJECUCION.md)**.
+> Guía técnica de instalación en [`docs/setup.md`](docs/setup.md).
+
+---
+
+## Endpoints de la API
+
+```
+GET  /health            POST /predict           POST /explain/shap
+GET  /models/status     POST /agents/run        POST /explain/lime
+GET  /dashboard         GET  /agents/logs
+```
+
+Detalle y ejemplos en [`docs/api.md`](docs/api.md).
+
+---
+
+## Dataset
+
+`data/raw/dataset.csv` (44 053 registros reales de Puno). Problema: **clasificación
+multiclase** de severidad de anemia (`Dx_anemia`). Variables y caso de ejemplo
+(Juliaca) descritos en [`docs/models.md`](docs/models.md).
+
+### Caso de ejemplo (Juliaca)
+```
+Sexo F · EdadMeses 53.62 · Hemoglobina 13.7 g/dL · AlturaREN 3877 m.s.n.m.
+→ Hbc ≈ 11.40 g/dL (ajuste -2.30) → Diagnóstico: Normal (bajo riesgo)
 ```
 
 ---
 
-## Tecnologías Utilizadas
+## Estructura del repositorio
 
-- **Backend**: Hono (TypeScript) + Cloudflare Workers/Pages
-- **Frontend**: HTML5 + TailwindCSS + Vanilla JS
-- **Librerías**: Chart.js, html2canvas, jsPDF, FontAwesome
-- **Despliegue**: Wrangler Pages / Cloudflare
-
----
-
-## Funcionalidades Implementadas
-
-- [x] Chatbot conversacional con burbujas de chat
-- [x] Formulario clínico por bloques con toggles Sí/No
-- [x] Cálculo de Hbc por altitud (tabla OMS 2024 / MINSA)
-- [x] Diagnóstico estimado (4 categorías) según OMS
-- [x] Indicador de nivel de riesgo con gauge visual
-- [x] Gráfico XAI de factores influyentes (SHAP-like)
-- [x] Recomendaciones terapéuticas por categoría (MINSA)
-- [x] Reporte clínico unificado descargable (PDF)
-- [x] Panel de agentes activos (sidebar)
-- [x] Caso de ejemplo precargado (Juliaca)
-- [x] Respuestas contextuales por texto libre
-- [x] Diseño responsivo (desktop + móvil)
+```
+backend/   API FastAPI (core, api, schemas, services, models, utils, tests)
+frontend/  SPA React + Webpack (pages, components, services, hooks, types, styles)
+ml/        preprocesamiento, entrenamiento RF/XGB, evaluación e inferencia
+explainability/  SHAP y LIME
+agents/    6 agentes + orquestador
+database/  schema.sql, seed.sql, migraciones (Alembic)
+data/      raw / processed / sample
+notebooks/ EDA, entrenamiento, XAI, demo del pipeline
+docs/      documentación técnica
+pyproject.toml · uv.lock · requirements.txt · docker-compose.yml
+```
 
 ---
 
-## Despliegue
+## Tecnologías
 
-- **Plataforma**: Cloudflare Pages
-- **Estado**: ✅ En desarrollo local
-- **Última actualización**: Junio 2024
+`React` · `TypeScript` · `TSX` · `Webpack 5` · `Tailwind CSS` · `Framer Motion` ·
+`React Router DOM` · `Axios` · `Recharts` · `Lucide React` ·
+`FastAPI` · `Uvicorn` · `SQLAlchemy` · `Alembic` · `PostgreSQL` ·
+`scikit-learn` · `XGBoost` · `SHAP` · `LIME` · `uv` · `.venv` · `Docker Compose`.
+
+---
+
+## Documentación
+
+[Arquitectura](docs/architecture.md) · [Setup](docs/setup.md) ·
+[Base de datos](docs/database.md) · [Docker](docs/docker.md) ·
+[Agentes](docs/agents.md) · [Modelos](docs/models.md) · [API](docs/api.md) ·
+[Comandos y pruebas](COMANDOS_EJECUCION.md)
+
+---
+
+**Contexto académico:** Trabajo de investigación sobre anemia infantil en zonas
+altoandinas del Perú · Grupo 07.

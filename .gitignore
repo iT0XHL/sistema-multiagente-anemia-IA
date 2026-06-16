@@ -1,33 +1,42 @@
-# prod
+# ── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ── Modelos / artefactos entrenados ──────────────────────
+ml/saved_models/*.joblib
+ml/saved_models/*.pkl
+explainability/outputs/*.png
+explainability/outputs/*.json
+
+# ── Datos pesados (se versiona solo la muestra) ──────────
+data/raw/*.csv
+data/processed/*.csv
+!data/sample/
+
+# ── Node / Frontend ──────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/public/styles.css
 dist/
 
-# dev
-.yarn/
-!.yarn/releases
-.vscode/*
-!.vscode/launch.json
-!.vscode/*.code-snippets
-.idea/workspace.xml
-.idea/usage.statistics.xml
-.idea/shelf
+# ── Entorno ──────────────────────────────────────────────
+# El proyecto usa un ÚNICO .env en la raíz (solo credenciales dummy del
+# prototipo académico), por lo que SÍ se versiona para que funcione al clonar.
+# .env
+*.local
 
-# deps
-node_modules/
-.wrangler
+# ── Docker / DB ──────────────────────────────────────────
+postgres_data/
 
-# env
-.env
-.env.production
-.dev.vars
-
-# logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# misc
+# ── Editor / OS ──────────────────────────────────────────
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db

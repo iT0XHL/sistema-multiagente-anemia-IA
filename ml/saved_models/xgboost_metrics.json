@@ -1,0 +1,64 @@
+{
+  "accuracy": 0.9998,
+  "f1_macro": 0.9987,
+  "f1_weighted": 0.9998,
+  "classes": [
+    "AnemiaLeve",
+    "AnemiaModerada",
+    "AnemiaSevera",
+    "Normal"
+  ],
+  "confusion_matrix": [
+    [
+      1132,
+      0,
+      0,
+      0
+    ],
+    [
+      2,
+      241,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      9,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      7427
+    ]
+  ],
+  "per_class": {
+    "AnemiaLeve": {
+      "precision": 0.9982,
+      "recall": 1.0,
+      "f1": 0.9991,
+      "support": 1132
+    },
+    "AnemiaModerada": {
+      "precision": 1.0,
+      "recall": 0.9918,
+      "f1": 0.9959,
+      "support": 243
+    },
+    "AnemiaSevera": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 9
+    },
+    "Normal": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 7427
+    }
+  },
+  "n_test": 8811
+}
