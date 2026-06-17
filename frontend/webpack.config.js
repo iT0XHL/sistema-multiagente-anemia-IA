@@ -54,6 +54,10 @@ module.exports = (_, argv) => {
     output: {
       path: safeOutputPath(),
       filename: 'bundle.js',
+      // Los imports dinámicos (p. ej. jsPDF) se emiten como chunks aparte con
+      // nombre estable y legible (sin hash, por la limitación del "!" en la
+      // ruta). El Dockerfile copia TODO dist/, así que nginx los sirve en "/".
+      chunkFilename: '[name].chunk.js',
       publicPath: '/',
       clean: true,
     },

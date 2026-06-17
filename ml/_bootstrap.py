@@ -10,5 +10,5 @@ if REPO_ROOT not in sys.path:
 
 # Rutas estándar de artefactos.
 SAVED_MODELS_DIR = os.path.join(REPO_ROOT, "ml", "saved_models")
-DATA_RAW = os.path.join(REPO_ROOT, "data", "raw", "dataset.csv")
+DATA_RAW = os.path.join(REPO_ROOT, "data", "dataset.csv")
 os.makedirs(SAVED_MODELS_DIR, exist_ok=True)

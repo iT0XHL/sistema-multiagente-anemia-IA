@@ -1,18 +1,49 @@
 # ============================================================
-#  AnemIA · Dockerfile.frontend (chatbot estático + Nginx)
-#  El frontend es HTML + CSS + JS vanilla (Tailwind vía CDN); no requiere
-#  build con Node. Se inyecta la URL real del backend en app.js.
+#  AnemIA · Dockerfile.frontend (React + Webpack → Nginx)
+#
+#  Stage 1 (builder): instala Node, compila Tailwind CSS y el bundle
+#    de Webpack (npm run build → prebuild corre css antes del bundle).
+#  Stage 2 (serve):   copia los artefactos a Nginx y los sirve en :3000.
+#
+#  REACT_APP_API_URL se inyecta como ARG de build y queda embebida en
+#  el bundle.js generado por el DefinePlugin de Webpack.
 # ============================================================
-FROM nginx:1.27-alpine
+
+# ── Stage 1: build ──────────────────────────────────────────
+FROM node:20-alpine AS builder
 
 ARG REACT_APP_API_URL=http://localhost:8000
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 
-# Estáticos del chatbot: index.html + /static/{styles.css, app.js}.
-COPY frontend/public/ /usr/share/nginx/html/
+WORKDIR /app/frontend
+
+# Instala dependencias primero para mejor cacheo de capas.
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+# Copia el código fuente del frontend.
+COPY frontend/ ./
+
+# El webpack.config.js lee ../.env para obtener REACT_APP_API_URL.
+# Como ENV ya está seteada, el DefinePlugin la tomará desde process.env.
+COPY .env /app/.env
+
+# prebuild → npm run css (Tailwind → public/styles.css)
+# build    → webpack --mode production (dist/bundle.js)
+RUN npm run build
+
+# ── Stage 2: serve ──────────────────────────────────────────
+FROM nginx:1.27-alpine
+
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Inyecta la URL del backend (reemplaza el marcador __API_BASE__ en app.js).
-RUN sed -i "s|__API_BASE__|${REACT_APP_API_URL}|g" /usr/share/nginx/html/static/app.js
+# Archivos estáticos: index.html + static/ + styles.css (generado por Tailwind).
+COPY --from=builder /app/frontend/public/ /usr/share/nginx/html/
+
+# Bundle de Webpack + chunks dinámicos (p. ej. jspdf.chunk.js del import()
+# dinámico de jsPDF). Se copia TODO dist/ para que nginx pueda servir cada
+# chunk en "/"; copiar solo bundle.js dejaba los chunks en 404.
+COPY --from=builder /app/frontend/dist/ /usr/share/nginx/html/
 
 EXPOSE 3000
 CMD ["nginx", "-g", "daemon off;"]

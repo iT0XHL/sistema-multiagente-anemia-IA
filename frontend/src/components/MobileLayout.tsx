@@ -25,7 +25,7 @@ export default function MobileLayout({ children, hideLayout }: Props) {
         </p>
       </div>
 
-      <main className="mx-auto max-w-lg px-4 pb-24 pt-4">{children}</main>
+      <main className="mx-auto max-w-lg px-4 pb-24 pt-4 sm:max-w-2xl lg:max-w-5xl lg:px-6 lg:pb-12">{children}</main>
 
       <BottomNav />
     </div>

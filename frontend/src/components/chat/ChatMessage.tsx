@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Bot, User, AlertTriangle, Cpu } from 'lucide-react'
 
 import { useTypewriter } from '../../hooks/useTypewriter'
@@ -38,15 +38,19 @@ interface Props {
 }
 
 export default function ChatMessage({ role, content, isLast }: Props) {
+  const reduce = useReducedMotion()
   const config = roleConfig[role]
   const Icon = config.avatar
   const isUser = role === 'user'
   const isString = typeof content === 'string'
   const isBot = role === 'assistant' || role === 'agent'
+  // Con prefers-reduced-motion el efecto máquina de escribir se desactiva
+  // (speed 0 ⇒ texto instantáneo).
+  const typeSpeed = reduce ? 0 : 20
 
   const { displayed, done } = useTypewriter(
     isBot && isLast && isString ? (content as string) : '',
-    isBot && isLast && isString ? 20 : 0
+    isBot && isLast && isString ? typeSpeed : 0
   )
 
   const displayText = isString
@@ -55,9 +59,9 @@ export default function ChatMessage({ role, content, isLast }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      transition={{ duration: reduce ? 0 : 0.25, ease: 'easeOut' }}
       className={`flex ${config.align} gap-2.5 px-4 ${isLast ? '' : 'mb-3'}`}
       role="listitem"
       aria-label={`Mensaje de ${role === 'assistant' ? 'asistente' : role === 'user' ? 'usuario' : role === 'system' ? 'sistema' : 'agente'}`}

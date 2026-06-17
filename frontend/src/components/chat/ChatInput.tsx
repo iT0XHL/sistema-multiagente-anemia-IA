@@ -2,33 +2,16 @@ import { motion } from 'framer-motion'
 import { Send } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
-import QuickCommands from './QuickCommands'
-
 interface Props {
   value: string
   onChange: (val: string) => void
   onSubmit: () => void
-  onExampleCase: () => void
-  onNewCase: () => void
-  onAnalyze: () => void
-  onViewAgents: () => void
-  onDashboard: () => void
   disabled?: boolean
-  showActions?: boolean
 }
 
-export default function ChatInput({
-  value,
-  onChange,
-  onSubmit,
-  onExampleCase,
-  onNewCase,
-  onAnalyze,
-  onViewAgents,
-  onDashboard,
-  disabled,
-  showActions,
-}: Props) {
+// Las acciones rápidas (cargar caso, nuevo caso, analizar, ver agentes,
+// dashboard) viven ahora en la barra lateral (ChatActionsSidebar), no aquí.
+export default function ChatInput({ value, onChange, onSubmit, disabled }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -47,18 +30,6 @@ export default function ChatInput({
       aria-label="Entrada de chat"
     >
       <div className="mx-auto max-w-4xl px-3 py-3 sm:px-4">
-        {showActions && (
-          <div className="mb-2.5">
-            <QuickCommands
-              onExampleCase={onExampleCase}
-              onNewCase={onNewCase}
-              onAnalyze={onAnalyze}
-              onViewAgents={onViewAgents}
-              onDashboard={onDashboard}
-              disabled={disabled}
-            />
-          </div>
-        )}
         <form onSubmit={handleSubmit} className="flex items-center gap-2" role="form" aria-label="Formulario de mensaje">
           <input
             ref={inputRef}
