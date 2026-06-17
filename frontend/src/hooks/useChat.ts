@@ -1,5 +1,13 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { getConversation, putConversation } from '../lib/db'
+import {
+  autoTitle,
+  deserializeMessages,
+  generateConversationId,
+  serializeMessages,
+} from '../lib/conversation'
+import { loadLocal, saveLocal, STORAGE_KEYS } from '../lib/storage'
 import { runAgents } from '../services/api'
 import type {
   AgentDescriptor,
@@ -7,6 +15,8 @@ import type {
   ChatMessage,
   ChatPhase,
   ClinicalFormData,
+  Conversation,
+  ConversationStatus,
   ModelName,
 } from '../types'
 import { defaultClinicalForm, ejemploJuliaca } from '../types'
@@ -52,6 +62,18 @@ const AGENT_FRIENDLY: Record<string, { number: number; pastMessage: string }> = 
 }
 
 const SCROLL_DELAY_MS = 600
+const SAVE_DEBOUNCE_MS = 400
+
+function freshAgents(): AgentDescriptor[] {
+  return DEFAULT_AGENTS.map(a => ({ ...a, status: 'pending', detail: a.detail }))
+}
+
+function deriveStatus(phase: ChatPhase, report: AgentRunReport | null, error: string | null): ConversationStatus {
+  if (error) return 'error'
+  if (report?.ok) return 'completed'
+  if (phase === 'processing') return 'processing'
+  return 'draft'
+}
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE, DATA_REQUEST_MESSAGE])
@@ -66,8 +88,76 @@ export function useChat() {
   const [showTyping, setShowTyping] = useState(false)
   const [agentStep, setAgentStep] = useState(-1)
 
+  // Identidad de la conversación activa (persistida en localStorage).
+  const [conversationId, setConversationId] = useState<string>(() =>
+    loadLocal<string>(STORAGE_KEYS.activeConversationId, '') || generateConversationId(),
+  )
+  const [title, setTitle] = useState<string>('Nueva consulta')
+
+  const createdAtRef = useRef<number>(Date.now())
+  const hydratedRef = useRef(false)
+  const skipNextSaveRef = useRef(false)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ---- Hidratación al montar: restaura la conversación activa ----
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const conv = conversationId ? await getConversation(conversationId) : null
+      if (!cancelled && conv) {
+        skipNextSaveRef.current = true
+        setMessages(deserializeMessages(conv.messages))
+        setFormData(conv.formData)
+        setReport(conv.report)
+        setAgents(conv.agents?.length ? conv.agents : freshAgents())
+        setPhase(conv.phase)
+        setTitle(conv.title)
+        createdAtRef.current = conv.createdAt
+      }
+      saveLocal(STORAGE_KEYS.activeConversationId, conversationId)
+      hydratedRef.current = true
+    })()
+    return () => { cancelled = true }
+    // Solo al montar; loadConversation gestiona cambios posteriores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ---- Persistencia (debounce) de la conversación activa en IndexedDB ----
+  useEffect(() => {
+    if (!hydratedRef.current) return
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false
+      return
+    }
+    const computedTitle =
+      title && title !== 'Nueva consulta'
+        ? title
+        : autoTitle(formData.DistritoREN, createdAtRef.current)
+
+    const snapshot: Conversation = {
+      id: conversationId,
+      title: computedTitle,
+      createdAt: createdAtRef.current,
+      updatedAt: Date.now(),
+      status: deriveStatus(phase, report, error),
+      messages: serializeMessages(messages),
+      formData,
+      report,
+      agents,
+      phase,
+      model: formData.Modelo === 'xgboost' ? 'xgboost' : 'random_forest',
+    }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      void putConversation(snapshot)
+    }, SAVE_DEBOUNCE_MS)
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [messages, formData, report, agents, phase, error, conversationId, title])
 
   const addMessage = useCallback((msg: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const message: ChatMessage = {
@@ -112,7 +202,8 @@ export function useChat() {
     setLoading(true)
     setShowForm(false)
     setError(null)
-    setAgents(DEFAULT_AGENTS.map(a => ({ ...a, status: 'pending', detail: a.detail })))
+    setPhase('processing')
+    setAgents(freshAgents())
 
     const model: ModelName = data.Modelo === 'xgboost' ? 'xgboost' : 'random_forest'
     const clinicalCase = {
@@ -157,6 +248,8 @@ export function useChat() {
       if (result.ok) {
         setReport(result)
         setPhase('result')
+        // Título definitivo basado en el distrito del caso.
+        setTitle(autoTitle(data.DistritoREN, createdAtRef.current))
 
         addMessage({ role: 'system', content: '✅ El sistema multiagente ha completado el análisis del caso clínico.' })
 
@@ -172,7 +265,7 @@ export function useChat() {
           const topFactor = result.explainability.top_factor || 'Hemoglobina corregida por altitud'
           addMessage({
             role: 'assistant',
-            content: `🔍 **Factores que más influyeron en la predicción**\n\n1. ${topFactor}\n2. Edad del paciente\n3. Altitud del establecimiento\n4. Síntomas reportados`,
+            content: `🔍 **Factores que más influyeron en la predicción**\n\nFactor principal: ${topFactor}.\nRevisa el panel de resultados para el desglose SHAP/LIME completo.`,
           })
         }
 
@@ -180,14 +273,14 @@ export function useChat() {
           setPhase('recommendation')
           addMessage({
             role: 'assistant',
-            content: `💊 **Recomendación referencial**\n\nDerivar el caso para evaluación médica, confirmar con análisis clínico y seguir lineamientos MINSA según severidad.`,
+            content: `💊 **Recomendación referencial**\n\n${result.recommendation.title}. Sigue los lineamientos MINSA según severidad y confirma con evaluación médica.`,
           })
         }
 
         setPhase('complete')
         addMessage({
           role: 'assistant',
-          content: '✅ El caso fue procesado correctamente por el sistema multiagente.\n\nPuedes:\n• Hacer una **nueva consulta**\n• Revisar el **panel** de control\n• Consultar el **historial** de casos',
+          content: '✅ El caso fue procesado correctamente por el sistema multiagente.\n\nPuedes:\n• Hacer una **nueva consulta**\n• Revisar el **panel** de resultados\n• Consultar el **historial** de casos',
         })
       } else {
         setError(result.error || 'El pipeline finalizó con errores.')
@@ -221,21 +314,52 @@ export function useChat() {
     scrollToBottom()
   }, [addMessage, scrollToBottom])
 
-  const newConsultation = useCallback(() => {
-    if (report || phase !== 'awaiting_data') {
-      const ok = window.confirm('¿Deseas iniciar una nueva consulta? Se perderán los datos actuales.')
-      if (!ok) return
-    }
+  /** Reinicia el estado y abre una conversación nueva (sin confirmación). */
+  const startNewConversation = useCallback(() => {
+    const id = generateConversationId()
+    createdAtRef.current = Date.now()
+    skipNextSaveRef.current = false
+    setConversationId(id)
+    saveLocal(STORAGE_KEYS.activeConversationId, id)
     setMessages([WELCOME_MESSAGE, DATA_REQUEST_MESSAGE])
     setFormData(defaultClinicalForm)
     setReport(null)
     setError(null)
     setPhase('awaiting_data')
     setShowForm(true)
-    setAgents(DEFAULT_AGENTS.map(a => ({ ...a, status: 'pending', detail: a.detail })))
+    setAgents(freshAgents())
     setAgentStep(-1)
     setInputValue('')
-  }, [report, phase])
+    setTitle('Nueva consulta')
+  }, [])
+
+  // Alias retrocompatible (la confirmación se gestiona en la página de chat).
+  const newConsultation = startNewConversation
+
+  /** Carga una conversación existente del historial y la hace activa. */
+  const loadConversation = useCallback(async (id: string) => {
+    const conv = await getConversation(id)
+    if (!conv) return
+    skipNextSaveRef.current = true
+    setConversationId(id)
+    saveLocal(STORAGE_KEYS.activeConversationId, id)
+    createdAtRef.current = conv.createdAt
+    setMessages(deserializeMessages(conv.messages))
+    setFormData(conv.formData)
+    setReport(conv.report)
+    setAgents(conv.agents?.length ? conv.agents : freshAgents())
+    setPhase(conv.phase)
+    setTitle(conv.title)
+    setError(null)
+    setShowForm(conv.phase === 'awaiting_data' || conv.phase === 'idle')
+    setInputValue('')
+  }, [])
+
+  /** Renombra la conversación activa. */
+  const renameActive = useCallback((newTitle: string) => {
+    const t = newTitle.trim()
+    if (t) setTitle(t)
+  }, [])
 
   const handleSendMessage = useCallback(() => {
     const text = inputValue.trim()
@@ -258,7 +382,7 @@ export function useChat() {
       } else if (lower.includes('ejemplo') || lower.includes('juliaca')) {
         loadExampleCase()
       } else if (lower.includes('nuevo') || lower.includes('nueva consulta')) {
-        newConsultation()
+        startNewConversation()
       } else {
         addMessage({
           role: 'assistant',
@@ -267,7 +391,7 @@ export function useChat() {
       }
       scrollToBottom()
     }, 1200)
-  }, [inputValue, addMessage, loadExampleCase, newConsultation, loading, scrollToBottom])
+  }, [inputValue, addMessage, loadExampleCase, startNewConversation, loading, scrollToBottom])
 
   return {
     messages,
@@ -283,9 +407,14 @@ export function useChat() {
     showForm,
     showTyping,
     agentStep,
+    conversationId,
+    title,
     submitForm,
     loadExampleCase,
     newConsultation,
+    startNewConversation,
+    loadConversation,
+    renameActive,
     handleSendMessage,
   }
 }

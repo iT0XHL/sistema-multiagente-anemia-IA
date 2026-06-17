@@ -1,18 +1,18 @@
-import { BarChart3, Clock, Info, MessageCircle } from 'lucide-react'
+import { BarChart3, MessageCircle } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
+// El historial se abre desde la cabecera del chat y «Acerca» vive en la barra
+// lateral de acciones; por eso la nav inferior se reduce a Chat + Panel.
 const items = [
   { to: '/chat', label: 'Chat', icon: MessageCircle },
   { to: '/dashboard', label: 'Panel', icon: BarChart3 },
-  { to: '/history', label: 'Historial', icon: Clock },
-  { to: '/about', label: 'Acerca', icon: Info },
 ]
 
 // Barra de navegación inferior (mobile-first).
 export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur" aria-label="Navegación principal">
-      <div className="mx-auto max-w-lg grid grid-cols-4">
+      <div className="mx-auto grid max-w-xs grid-cols-2 lg:max-w-sm">
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

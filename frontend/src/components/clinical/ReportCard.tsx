@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, FileText, Printer } from 'lucide-react'
 
+import { useClinicalPdf } from '../../hooks/useClinicalPdf'
 import type { AgentRunReport } from '../../types'
 
 interface Props {
@@ -9,8 +9,7 @@ interface Props {
 }
 
 export default function ReportCard({ report }: Props) {
-  const contentRef = useRef<HTMLDivElement>(null)
-  const [pdfLoading, setPdfLoading] = useState(false)
+  const { generating, error: pdfError, downloadPdf, printPdf } = useClinicalPdf()
 
   const pre = report.preprocessing
   const pred = report.prediction
@@ -39,57 +38,6 @@ export default function ReportCard({ report }: Props) {
     AnemiaSevera: 'bg-red-100 text-red-700 border-red-300',
   }
 
-  const handleDownloadPDF = useCallback(async () => {
-    if (!contentRef.current) return
-    setPdfLoading(true)
-    try {
-      const html2canvas = (await import('html2canvas')).default
-      const { jsPDF } = await import('jspdf')
-
-      const canvas = await html2canvas(contentRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-      const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const pW = pdf.internal.pageSize.getWidth()
-      const imgW = pW - 20
-      const ratio = canvas.width / canvas.height
-      const imgH = imgW / ratio
-      const pH = pdf.internal.pageSize.getHeight()
-
-      if (imgH > pH - 20) {
-        const pages = Math.ceil(imgH / (pH - 20))
-        for (let i = 0; i < pages; i++) {
-          if (i > 0) pdf.addPage()
-          pdf.addImage(imgData, 'PNG', 10, 10 - i * (pH - 20), imgW, imgH)
-        }
-      } else {
-        pdf.addImage(imgData, 'PNG', 10, 10, imgW, imgH)
-      }
-      const dist = report.case.DistritoREN || 'Puno'
-      const fname = `AnemIA_Reporte_${dist}_${new Date().toISOString().slice(0, 10)}.pdf`
-      pdf.save(fname)
-    } catch {
-      alert('Error al generar PDF. Usa la opción de imprimir.')
-    }
-    setPdfLoading(false)
-  }, [report])
-
-  const handlePrint = useCallback(() => {
-    const content = contentRef.current?.innerHTML
-    if (!content) return
-    const w = window.open('', '_blank')
-    if (!w) return
-    w.document.write(`<!DOCTYPE html><html><head><title>Reporte AnemIA</title>
-      <script src="https://cdn.tailwindcss.com"><\/script>
-      <style>body{font-family:Arial,sans-serif;padding:20px;max-width:800px;margin:0 auto}
-      .badge-normal{background:#dcfce7;color:#15803d;padding:3px 10px;border-radius:999px;}
-      .badge-leve{background:#fef9c3;color:#854d0e;padding:3px 10px;border-radius:999px;}
-      .badge-moderada{background:#ffedd5;color:#9a3412;padding:3px 10px;border-radius:999px;}
-      .badge-severa{background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:999px;}
-      </style></head><body>${content}</body></html>`)
-    w.document.close()
-    setTimeout(() => { w.print() }, 800)
-  }, [])
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 16, scale: 0.98 }}
@@ -104,7 +52,7 @@ export default function ReportCard({ report }: Props) {
         <span className="text-sm font-semibold">Reporte Clínico Unificado · AnemIA</span>
       </div>
 
-      <div className="p-3" ref={contentRef} id="report-content">
+      <div className="p-3" id="report-content">
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-[10px] text-slate-500">Fecha de generación</p>
@@ -188,12 +136,18 @@ export default function ReportCard({ report }: Props) {
           ⚠ <strong>Nota académica:</strong> Este reporte es generado por un prototipo de investigación. No reemplaza el diagnóstico clínico profesional. Toda decisión médica debe ser tomada por personal de salud autorizado.
         </div>
 
+        {pdfError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-[10px] text-red-700 mt-2" role="alert">
+            {pdfError}
+          </div>
+        )}
+
         <div className="flex gap-2 mt-3">
-          <button onClick={handleDownloadPDF} disabled={pdfLoading} className="btn-primary flex-1 text-xs py-2">
+          <button onClick={() => downloadPdf(report)} disabled={generating} className="btn-primary flex-1 text-xs py-2">
             <Download size={12} />
-            {pdfLoading ? 'Generando PDF…' : 'Descargar PDF'}
+            {generating ? 'Generando PDF…' : 'Descargar PDF'}
           </button>
-          <button onClick={handlePrint} className="btn-ghost text-xs py-2">
+          <button onClick={() => printPdf(report)} disabled={generating} className="btn-ghost text-xs py-2">
             <Printer size={12} /> Imprimir
           </button>
         </div>
