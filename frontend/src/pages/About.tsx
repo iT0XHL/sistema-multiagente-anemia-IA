@@ -22,8 +22,8 @@ const features = [
 
 export default function About() {
   return (
-    <motion.div {...pageTransition} className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-lg px-4 py-6 space-y-4">
+    <motion.div {...pageTransition} className="min-h-screen">
+      <div className="mx-auto max-w-lg px-4 py-6 space-y-4 lg:max-w-4xl">
         <AnimatedCard className="bg-gradient-to-br from-teal-600 to-teal-800 text-white border-0">
           <h2 className="text-xl font-bold">Asistente clínico para anemia infantil</h2>
           <p className="mt-1 text-sm text-teal-100">
@@ -32,9 +32,9 @@ export default function About() {
           </p>
         </AnimatedCard>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {features.map(({ icon: Icon, title, desc }, i) => (
-            <AnimatedCard key={title} delay={0.05 * i}>
+            <AnimatedCard key={title} delay={0.05 * i} hoverable>
               <Icon size={22} className="text-teal-600" />
               <p className="mt-2 text-sm font-semibold text-slate-700">{title}</p>
               <p className="text-[11px] text-slate-400">{desc}</p>

@@ -85,15 +85,15 @@ export default function Drawer({
             dragMomentum={false}
             dragConstraints={{ left: 0, right: 0 }}
             onDragEnd={handleDragEnd}
-            className={`absolute top-0 bottom-0 ${side === 'right' ? 'right-0' : 'left-0'} ${widthClass} flex flex-col bg-white shadow-2xl`}
+            className={`absolute top-0 bottom-0 ${side === 'right' ? 'right-0' : 'left-0'} ${widthClass} flex flex-col bg-white shadow-2xl dark:bg-slate-900`}
           >
             {title && (
-              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-                <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
+              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+                <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h2>
                 <button
                   onClick={onClose}
                   aria-label="Cerrar panel"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-200"
                 >
                   <X size={16} />
                 </button>

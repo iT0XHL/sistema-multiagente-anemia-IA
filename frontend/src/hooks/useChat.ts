@@ -87,6 +87,10 @@ export function useChat() {
   const [showForm, setShowForm] = useState(true)
   const [showTyping, setShowTyping] = useState(false)
   const [agentStep, setAgentStep] = useState(-1)
+  // Ancla del turno al que pertenecen los resultados/cards del análisis: el id
+  // del mensaje tras el cual deben renderizarse las tarjetas de resultado. Así
+  // los resultados quedan asociados a su turno y no «pegados» al fondo del chat.
+  const [resultAnchorId, setResultAnchorId] = useState<string | null>(null)
 
   // Identidad de la conversación activa (persistida en localStorage).
   const [conversationId, setConversationId] = useState<string>(() =>
@@ -108,12 +112,15 @@ export function useChat() {
       const conv = conversationId ? await getConversation(conversationId) : null
       if (!cancelled && conv) {
         skipNextSaveRef.current = true
-        setMessages(deserializeMessages(conv.messages))
+        const restored = deserializeMessages(conv.messages)
+        setMessages(restored)
         setFormData(conv.formData)
         setReport(conv.report)
         setAgents(conv.agents?.length ? conv.agents : freshAgents())
         setPhase(conv.phase)
         setTitle(conv.title)
+        // Reancla los resultados al último mensaje de la conversación cargada.
+        setResultAnchorId(conv.report?.ok && restored.length ? restored[restored.length - 1].id : null)
         createdAtRef.current = conv.createdAt
       }
       saveLocal(STORAGE_KEYS.activeConversationId, conversationId)
@@ -204,6 +211,10 @@ export function useChat() {
     setError(null)
     setPhase('processing')
     setAgents(freshAgents())
+    // Un análisis nuevo limpia los resultados/cards del análisis anterior del
+    // mismo hilo para que no queden renderizados fuera de contexto.
+    setReport(null)
+    setResultAnchorId(null)
 
     const model: ModelName = data.Modelo === 'xgboost' ? 'xgboost' : 'random_forest'
     const clinicalCase = {
@@ -278,10 +289,12 @@ export function useChat() {
         }
 
         setPhase('complete')
-        addMessage({
+        const closingMsg = addMessage({
           role: 'assistant',
           content: '✅ El caso fue procesado correctamente por el sistema multiagente.\n\nPuedes:\n• Hacer una **nueva consulta**\n• Revisar el **panel** de resultados\n• Consultar el **historial** de casos',
         })
+        // Las tarjetas de resultado de este turno se renderizan tras este mensaje.
+        setResultAnchorId(closingMsg.id)
       } else {
         setError(result.error || 'El pipeline finalizó con errores.')
         addMessage({
@@ -324,6 +337,7 @@ export function useChat() {
     setMessages([WELCOME_MESSAGE, DATA_REQUEST_MESSAGE])
     setFormData(defaultClinicalForm)
     setReport(null)
+    setResultAnchorId(null)
     setError(null)
     setPhase('awaiting_data')
     setShowForm(true)
@@ -344,9 +358,12 @@ export function useChat() {
     setConversationId(id)
     saveLocal(STORAGE_KEYS.activeConversationId, id)
     createdAtRef.current = conv.createdAt
-    setMessages(deserializeMessages(conv.messages))
+    const restored = deserializeMessages(conv.messages)
+    setMessages(restored)
     setFormData(conv.formData)
     setReport(conv.report)
+    // Reancla los resultados de la consulta cargada a su último mensaje.
+    setResultAnchorId(conv.report?.ok && restored.length ? restored[restored.length - 1].id : null)
     setAgents(conv.agents?.length ? conv.agents : freshAgents())
     setPhase(conv.phase)
     setTitle(conv.title)
@@ -407,6 +424,7 @@ export function useChat() {
     showForm,
     showTyping,
     agentStep,
+    resultAnchorId,
     conversationId,
     title,
     submitForm,

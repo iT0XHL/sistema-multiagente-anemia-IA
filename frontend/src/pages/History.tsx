@@ -1,9 +1,10 @@
 import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle2, Clock, Database, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import { getAgentLogs } from '../services/api'
 import { pageTransition } from '../pageTransition'
-import { useEffect, useState } from 'react'
+import { staggerContainer, staggerItem } from '../lib/motion'
 import type { AgentLogEntry } from '../types'
 
 export default function History() {
@@ -33,12 +34,12 @@ export default function History() {
   }, [])
 
   return (
-    <motion.div {...pageTransition} className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-lg px-4 py-6">
+    <motion.div {...pageTransition} className="min-h-screen">
+      <div className="mx-auto max-w-lg px-4 py-6 lg:max-w-4xl">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-800">Historial de consultas</h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="mt-1 text-sm text-slate-500">
               Registro de casos clínicos procesados por el sistema multiagente.
             </p>
           </div>
@@ -55,7 +56,11 @@ export default function History() {
         <div className="mt-3 flex items-center gap-2">
           <Database size={14} className={dbStatus === 'connected' ? 'text-emerald-600' : 'text-slate-400'} />
           <span className={`text-xs ${dbStatus === 'connected' ? 'text-emerald-700' : 'text-slate-500'}`}>
-            {dbStatus === 'connected' ? 'PostgreSQL conectado' : dbStatus === 'unavailable' ? 'Base de datos no disponible' : 'Verificando...'}
+            {dbStatus === 'connected'
+              ? 'PostgreSQL conectado'
+              : dbStatus === 'unavailable'
+                ? 'Base de datos no disponible'
+                : 'Verificando…'}
           </span>
         </div>
 
@@ -66,9 +71,16 @@ export default function History() {
         )}
 
         {loading && !error && (
-          <div className="mt-8 flex flex-col items-center gap-2 text-slate-400">
-            <Clock size={24} className="animate-pulse" />
-            <p className="text-sm">Cargando historial...</p>
+          <div className="mt-4 grid gap-2 lg:grid-cols-2" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between">
+                  <div className="skeleton h-4 w-32" />
+                  <div className="skeleton h-3 w-10" />
+                </div>
+                <div className="skeleton mt-2 h-3 w-3/4" />
+              </div>
+            ))}
           </div>
         )}
 
@@ -83,30 +95,36 @@ export default function History() {
         )}
 
         {logs.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <motion.div
+            className="mt-4 grid gap-2 lg:grid-cols-2"
+            variants={staggerContainer(0.05)}
+            initial="hidden"
+            animate="visible"
+          >
             {logs.map((log, i) => (
-              <div
+              <motion.div
                 key={`${log.run_id ?? ''}_${log.agent}_${i}`}
-                className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                variants={staggerItem}
+                className="rounded-xl border border-slate-200 bg-white p-3 shadow-card transition-shadow hover:shadow-card-hover"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex min-w-0 items-center gap-2">
                     {log.status === 'ok' ? (
                       <CheckCircle2 size={14} className="flex-shrink-0 text-emerald-600" />
                     ) : (
                       <AlertTriangle size={14} className="flex-shrink-0 text-red-500" />
                     )}
-                    <span className="text-sm font-medium text-slate-700 truncate">{log.agent}</span>
+                    <span className="truncate text-sm font-medium text-slate-700">{log.agent}</span>
                   </div>
                   <span className="flex-shrink-0 text-[10px] text-slate-400">{log.elapsed_ms} ms</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500 truncate">{log.message}</p>
+                <p className="mt-1 truncate text-xs text-slate-500">{log.message}</p>
                 {log.created_at && (
                   <p className="mt-1 text-[10px] text-slate-400">{new Date(log.created_at).toLocaleString('es-PE')}</p>
                 )}
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </motion.div>

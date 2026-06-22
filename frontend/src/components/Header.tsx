@@ -1,30 +1,42 @@
-import { HeartPulse } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 
+import { useIsDesktop } from '../hooks/useMediaQuery'
+import SettingsMenu from './layout/SettingsMenu'
+import SidebarToggle from './layout/SidebarToggle'
+
+const titles: Record<string, string> = {
+  '/dashboard': 'Panel de control',
+  '/history': 'Actividad del sistema',
+  '/about': 'Acerca de AnemIA',
+}
+
+/**
+ * Cabecera minimalista para las páginas que no son el chat: título de la sección
+ * actual + configuración (y, solo en móvil/tablet, el botón de menú del drawer).
+ * En escritorio el colapso del sidebar se controla desde su propio header. La
+ * marca y la navegación viven en la barra lateral.
+ */
 export default function Header() {
-  const navigate = useNavigate()
+  const reduce = useReducedMotion()
+  const isDesktop = useIsDesktop()
+  const { pathname } = useLocation()
+  const title = titles[pathname] ?? 'AnemIA'
+
   return (
-    <header className="sticky top-0 z-30 bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-lg shadow-teal-900/20" role="banner">
-      <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-        <button onClick={() => navigate('/chat')} className="flex items-center gap-3 flex-1 min-w-0" aria-label="Ir al chat">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 shadow-inner" aria-hidden="true">
-            <HeartPulse size={18} />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-base font-bold leading-tight truncate">AnemIA <span className="font-light text-teal-200">·</span> Asistente Clínico</h1>
-            <p className="text-[11px] text-teal-200 truncate">
-              Sistema Multiagente · Diagnóstico de Anemia Infantil · Puno, Perú
-            </p>
-          </div>
-        </button>
-        <div className="flex flex-shrink-0 items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur" aria-label="Estado del sistema: activo">
-          <span className="relative flex h-2 w-2" aria-hidden="true">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-          </span>
-          <span className="text-[10px] font-medium text-emerald-200">Sistema activo</span>
-        </div>
-      </div>
+    <header className="glass sticky top-0 z-30" role="banner">
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 lg:px-6"
+      >
+        {!isDesktop && <SidebarToggle />}
+        <h1 className="min-w-0 flex-1 truncate text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          {title}
+        </h1>
+        <SettingsMenu />
+      </motion.div>
     </header>
   )
 }

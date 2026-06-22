@@ -32,3 +32,9 @@ export function useIsDesktop(): boolean {
 export function useIsTablet(): boolean {
   return useMediaQuery('(min-width: 768px)')
 }
+
+/** Pantallas anchas (xl = 1280px). Usado para mostrar a la vez el sidebar
+ *  izquierdo de navegación y el panel derecho de acciones del chat. */
+export function useIsWide(): boolean {
+  return useMediaQuery('(min-width: 1280px)')
+}

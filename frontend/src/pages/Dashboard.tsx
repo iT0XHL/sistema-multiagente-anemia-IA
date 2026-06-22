@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Database } from 'lucide-react'
+import { Activity, Database } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
 import AnimatedCard from '../components/AnimatedCard'
@@ -31,6 +31,7 @@ export default function Dashboard() {
         <DashboardCard
           title="Predicciones registradas"
           value={data?.total_predictions ?? 0}
+          icon={<Activity size={18} />}
         />
         <AnimatedCard delay={0.05}>
           <div className="flex items-center gap-2">
@@ -74,7 +75,7 @@ export default function Dashboard() {
           {models.map((m) => (
             <div
               key={m.name}
-              className="flex items-center justify-between rounded-xl border border-slate-200 p-2 text-sm"
+              className="flex items-center justify-between rounded-xl border border-slate-200 p-2 text-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
             >
               <span className="font-medium text-slate-700">{m.name}</span>
               {m.trained ? (
