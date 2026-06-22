@@ -127,7 +127,7 @@ export default function ReportCard({ report }: Props) {
 
         {mon && (
           <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-1.5 text-[10px] text-slate-500 border border-slate-200 mt-2">
-            <span>Pipeline: {mon.agents_run} agentes</span>
+            <span>Pipeline: {report.agent_logs?.length ?? mon.agents_run} agentes</span>
             <span>{mon.total_elapsed_ms} ms · {mon.status}</span>
           </div>
         )}

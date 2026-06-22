@@ -27,10 +27,13 @@ frontend/public/styles.css
 dist/
 
 # ── Entorno ──────────────────────────────────────────────
-# El proyecto usa un ÚNICO .env en la raíz (solo credenciales dummy del
-# prototipo académico), por lo que SÍ se versiona para que funcione al clonar.
-# .env
+# El .env no se versiona (usar .env.example como plantilla al clonar).
+.env
 *.local
+
+# ── Documentación interna / planificación (no se versiona) ───
+CLAUDE.md
+PLAN_CORRECCIONES_Y_MEJORAS.md
 
 # ── Docker / DB ──────────────────────────────────────────
 postgres_data/

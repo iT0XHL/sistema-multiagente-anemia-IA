@@ -382,7 +382,9 @@ export async function buildClinicalPdf(
   sectionTitle(ctx, 'Observaciones')
   if (mon) {
     kvGrid(ctx, [
-      ['Agentes ejecutados', String(mon.agents_run)],
+      // Incluye al agente Coordinador (Monitoring): el backend cuenta solo los
+      // 5 previos en `agents_run`, por lo que usamos el total de logs (6).
+      ['Agentes ejecutados', String(report.agent_logs?.length ?? mon.agents_run)],
       ['Tiempo total', `${mon.total_elapsed_ms} ms`],
       ['Estado del pipeline', mon.status],
       ['Errores', String(mon.errors)],

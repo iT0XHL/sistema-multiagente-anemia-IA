@@ -246,7 +246,7 @@ function AgentsTab({ report, agents }: { report: AgentRunReport; agents: AgentDe
       </div>
       {mon && (
         <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
-          <Stat label="Agentes" value={String(mon.agents_run)} unit="ejecutados" />
+          <Stat label="Agentes" value={String(report.agent_logs?.length ?? mon.agents_run)} unit="ejecutados" />
           <Stat label="Tiempo total" value={String(mon.total_elapsed_ms)} unit="ms" />
           <Stat label="Errores" value={String(mon.errors)} unit="" />
           <Stat label="Estado" value={mon.status} unit="" />
