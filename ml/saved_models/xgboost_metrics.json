@@ -1,7 +1,13 @@
 {
-  "accuracy": 0.9998,
-  "f1_macro": 0.9987,
-  "f1_weighted": 0.9998,
+  "accuracy": 0.9979,
+  "balanced_accuracy": 0.9957,
+  "f1_macro": 0.9844,
+  "f1_weighted": 0.9979,
+  "cohen_kappa": 0.9917,
+  "mcc": 0.9917,
+  "roc_auc_macro_ovr": 1.0,
+  "pr_auc_macro": 0.9997,
+  "log_loss": 0.0069,
   "classes": [
     "AnemiaLeve",
     "AnemiaModerada",
@@ -10,55 +16,227 @@
   ],
   "confusion_matrix": [
     [
-      1132,
+      834,
+      7,
       0,
-      0,
-      0
+      1
     ],
     [
-      2,
-      241,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      9,
+      1,
+      293,
+      1,
       0
     ],
     [
       0,
       0,
+      13,
+      0
+    ],
+    [
+      7,
       0,
-      7427
+      0,
+      7051
     ]
   ],
   "per_class": {
     "AnemiaLeve": {
-      "precision": 0.9982,
-      "recall": 1.0,
-      "f1": 0.9991,
-      "support": 1132
+      "precision": 0.9905,
+      "recall": 0.9905,
+      "f1": 0.9905,
+      "specificity": 0.9989,
+      "support": 842
     },
     "AnemiaModerada": {
-      "precision": 1.0,
-      "recall": 0.9918,
-      "f1": 0.9959,
-      "support": 243
+      "precision": 0.9767,
+      "recall": 0.9932,
+      "f1": 0.9849,
+      "specificity": 0.9991,
+      "support": 295
     },
     "AnemiaSevera": {
-      "precision": 1.0,
+      "precision": 0.9286,
       "recall": 1.0,
-      "f1": 1.0,
-      "support": 9
+      "f1": 0.963,
+      "specificity": 0.9999,
+      "support": 13
     },
     "Normal": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "support": 7427
+      "precision": 0.9999,
+      "recall": 0.999,
+      "f1": 0.9994,
+      "specificity": 0.9991,
+      "support": 7058
     }
   },
-  "n_test": 8811
+  "n_test": 8208,
+  "test": {
+    "accuracy": 0.9979,
+    "balanced_accuracy": 0.9957,
+    "f1_macro": 0.9844,
+    "f1_weighted": 0.9979,
+    "cohen_kappa": 0.9917,
+    "mcc": 0.9917,
+    "roc_auc_macro_ovr": 1.0,
+    "pr_auc_macro": 0.9997,
+    "log_loss": 0.0069,
+    "classes": [
+      "AnemiaLeve",
+      "AnemiaModerada",
+      "AnemiaSevera",
+      "Normal"
+    ],
+    "confusion_matrix": [
+      [
+        834,
+        7,
+        0,
+        1
+      ],
+      [
+        1,
+        293,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        13,
+        0
+      ],
+      [
+        7,
+        0,
+        0,
+        7051
+      ]
+    ],
+    "per_class": {
+      "AnemiaLeve": {
+        "precision": 0.9905,
+        "recall": 0.9905,
+        "f1": 0.9905,
+        "specificity": 0.9989,
+        "support": 842
+      },
+      "AnemiaModerada": {
+        "precision": 0.9767,
+        "recall": 0.9932,
+        "f1": 0.9849,
+        "specificity": 0.9991,
+        "support": 295
+      },
+      "AnemiaSevera": {
+        "precision": 0.9286,
+        "recall": 1.0,
+        "f1": 0.963,
+        "specificity": 0.9999,
+        "support": 13
+      },
+      "Normal": {
+        "precision": 0.9999,
+        "recall": 0.999,
+        "f1": 0.9994,
+        "specificity": 0.9991,
+        "support": 7058
+      }
+    },
+    "n_test": 8208
+  },
+  "train": {
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "f1_macro": 1.0,
+    "f1_weighted": 1.0,
+    "cohen_kappa": 1.0,
+    "mcc": 1.0,
+    "roc_auc_macro_ovr": 1.0,
+    "pr_auc_macro": 1.0,
+    "log_loss": 0.0002,
+    "classes": [
+      "AnemiaLeve",
+      "AnemiaModerada",
+      "AnemiaSevera",
+      "Normal"
+    ],
+    "confusion_matrix": [
+      [
+        3367,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1181,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        51,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        28229
+      ]
+    ],
+    "per_class": {
+      "AnemiaLeve": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "support": 3367
+      },
+      "AnemiaModerada": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "support": 1181
+      },
+      "AnemiaSevera": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "support": 51
+      },
+      "Normal": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "specificity": 1.0,
+        "support": 28229
+      }
+    },
+    "n_test": 32828
+  },
+  "class_distribution": {
+    "raw_train": {
+      "AnemiaLeve": 3367,
+      "AnemiaModerada": 1181,
+      "AnemiaSevera": 51,
+      "Normal": 28229
+    },
+    "after_smote": {
+      "AnemiaLeve": 28229,
+      "AnemiaModerada": 28229,
+      "AnemiaSevera": 28229,
+      "Normal": 28229
+    }
+  },
+  "split": {
+    "test_size": 0.2,
+    "n_train": 32828,
+    "n_test": 8208,
+    "balancing": "SMOTE (solo train)"
+  }
 }

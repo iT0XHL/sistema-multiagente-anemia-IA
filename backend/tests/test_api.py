@@ -31,4 +31,4 @@ def test_predict():
     assert r.status_code == 200
     body = r.json()
     assert body["diagnosis_code"] in {"Normal", "AnemiaLeve", "AnemiaModerada", "AnemiaSevera"}
-    assert body["hbc"] == 11.4
+    assert body["hbc"] == 11.06
