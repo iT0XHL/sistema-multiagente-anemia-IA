@@ -11,22 +11,41 @@ Clasificación **multiclase** de severidad de anemia a partir del dataset real
   `Suplementacion`, `Consejeria`, `Sesion`.
 - **Categóricas** (one-hot): `Sexo`, `ProvinciaREN`.
 
-`Hbc` se deriva de `Hemoglobina` y `AlturaREN` mediante la corrección por
-altitud (OMS 2024 / RM-258-2020-MINSA).
+`Hbc` se deriva de `Hemoglobina` y `AlturaREN` mediante una **corrección
+continua por altitud** (OMS 2024 / MINSA): `adj(h) = -0.030·h² - 0.56384·h`
+con `h = altitud/1000`. La fórmula se ajustó por mínimos cuadrados al propio
+dataset (error < 1e-6 g/dL), de modo que el `Hbc` de entrenamiento e
+inferencia coinciden (sin train/serve skew).
+
+## Datos
+El entrenamiento usa `data/dataset2024.csv`, limpiado por
+`ml/etl_clean_dataset.py` (imputación de programas sociales por moda,
+normalización de etiquetas, deduplicado). Distribución muy desbalanceada
+(Normal ≈ 86 %, Severa ≈ 0.16 %).
 
 ## Modelos
 | Modelo | Script | Configuración clave |
 |--------|--------|---------------------|
-| Random Forest | `train_random_forest.py` | 300 árboles, `class_weight="balanced"`. |
-| XGBoost | `train_xgboost.py` | 400 árboles, `multi:softprob`, `sample_weight` balanceado. |
+| Random Forest | `train_random_forest.py` | 300 árboles; split 80/20 estratificado + **SMOTE solo en train**. |
+| XGBoost | `train_xgboost.py` | 400 árboles, `multi:softprob`; split 80/20 + **SMOTE solo en train**. |
 
-Ambos se serializan con `joblib` en `ml/saved_models/` junto a su
-`LabelEncoder` y métricas.
+El balanceo se realiza con un `imblearn.pipeline.Pipeline`
+(`preprocesado → SMOTE → estimador`); el conjunto de prueba **nunca** se
+resamplea. Ambos se serializan con `joblib` en `ml/saved_models/` junto a su
+`LabelEncoder` y el bloque de métricas.
 
 ## Evaluación
-`evaluate_models.py` calcula Accuracy, F1 macro/weighted, reporte por clase y
-matriz de confusión. `compare_models.py` selecciona el mejor por F1 macro.
-Por el desbalance, **F1 macro** es la métrica de referencia (no la accuracy).
+`evaluate_models.py` calcula, sobre **train y test**: Accuracy, Balanced
+Accuracy, F1 macro/weighted, Cohen's Kappa, MCC, ROC-AUC (OvR macro), PR-AUC,
+Log-loss, precisión/recall/F1/especificidad por clase y matriz de confusión.
+`compare_models.py` selecciona el mejor por F1 macro.
+
+> Por el desbalance y porque `Dx_anemia` es cuasi-determinista en `Hbc`, la
+> accuracy es muy alta; usa **Balanced Accuracy, MCC y el recall por clase**
+> (en especial de `AnemiaSevera`) para una lectura honesta del rendimiento.
+
+Las métricas (incluida la matriz de confusión y la distribución antes/después
+de SMOTE) se exponen en `GET /models/status` y se visualizan en el dashboard.
 
 ## Inferencia
 ```python

@@ -11,18 +11,25 @@ from ml.preprocessing_pipeline import (  # noqa: E402
 )
 
 
-def test_altitude_adjustment_sea_level():
-    assert altitude_adjustment(500) == 0.0
+def test_altitude_adjustment_zero():
+    # A nivel del mar (o altitud no válida) no hay ajuste.
+    assert altitude_adjustment(0) == 0.0
+    assert altitude_adjustment(-100) == 0.0
+
+
+def test_altitude_adjustment_monotonic():
+    # Fórmula continua: el ajuste es cada vez más negativo con la altitud.
+    assert altitude_adjustment(1000) > altitude_adjustment(2000) > altitude_adjustment(4000)
 
 
 def test_altitude_adjustment_juliaca():
-    # 3877 m.s.n.m. cae en la franja [3800, 3900) -> -2.30
-    assert altitude_adjustment(3877) == -2.30
+    # 3877 m.s.n.m. con la fórmula continua OMS: -0.030 h^2 - 0.56384 h (h en km).
+    assert round(altitude_adjustment(3877), 2) == -2.64
 
 
 def test_correct_hemoglobin_juliaca():
-    # Caso ejemplo: Hb 13.7 a 3877 m -> 13.7 - 2.30 = 11.40
-    assert correct_hemoglobin_for_altitude(13.7, 3877) == 11.40
+    # Caso ejemplo: Hb 13.7 a 3877 m -> 13.7 - 2.637 = 11.06.
+    assert correct_hemoglobin_for_altitude(13.7, 3877) == 11.06
 
 
 def test_classify_normal_under5():

@@ -39,6 +39,15 @@ class Settings(BaseSettings):
     # Modelo por defecto
     default_model: str = "random_forest"
 
+    # Agente de recomendaciones (Gemini). La cadena de modelos se intenta en
+    # orden; si todos fallan o no hay API key, el agente cae a reglas MINSA.
+    gemini_api_key: str = ""
+    gemini_models: str = (
+        "gemini-3.1-flash-lite,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-3.5-flash"
+    )
+    gemini_max_output_tokens: int = 400
+    gemini_temperature: float = 0.4
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

@@ -17,20 +17,14 @@ import os
 from datetime import datetime, timezone
 
 import joblib
-import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.utils.class_weight import compute_sample_weight
 from xgboost import XGBClassifier
 
 from _bootstrap import DATA_RAW, SAVED_MODELS_DIR
-from ml.evaluate_models import compute_metrics, print_report
-from ml.preprocessing_pipeline import (
-    CLASS_ORDER,
-    build_preprocessor,
-    load_dataset,
-    split_xy,
-)
+from ml.evaluate_models import print_report
+from ml.preprocessing_pipeline import CLASS_ORDER, load_dataset, split_xy
+from ml.training_utils import assemble_metrics, build_smote_pipeline
 
 MODEL_NAME = "xgboost"
 
@@ -47,13 +41,8 @@ def train(data_path: str = DATA_RAW, random_state: int = 42) -> dict:
         X, y, test_size=0.2, stratify=y, random_state=random_state
     )
 
-    # XGBoost no acepta el ColumnTransformer dentro de su API nativa de
-    # sample_weight, por lo que transformamos primero y entrenamos después.
-    preprocessor = build_preprocessor()
-    X_train_t = preprocessor.fit_transform(X_train)
-    X_test_t = preprocessor.transform(X_test)
-    sample_weight = compute_sample_weight(class_weight="balanced", y=y_train)
-
+    # Sin sample_weight: el balanceo lo aporta SMOTE (solo sobre train), dentro
+    # del pipeline imbalanced-learn (preprocesado → SMOTE → estimador).
     estimator = XGBClassifier(
         n_estimators=400,
         max_depth=6,
@@ -66,18 +55,13 @@ def train(data_path: str = DATA_RAW, random_state: int = 42) -> dict:
         tree_method="hist",
         random_state=random_state,
     )
+    pipeline = build_smote_pipeline(estimator, random_state=random_state)
 
-    print(f"[XGB] Entrenando con {len(X_train)} muestras...")
-    estimator.fit(X_train_t, y_train, sample_weight=sample_weight)
+    print(f"[XGB] Entrenando (SMOTE en train) con {len(X_train)} muestras...")
+    pipeline.fit(X_train, y_train)
 
-    y_pred = estimator.predict(X_test_t)
-    metrics = compute_metrics(y_test, y_pred, label_encoder)
+    metrics = assemble_metrics(pipeline, label_encoder, X_train, y_train, X_test, y_test)
     print_report("XGBoost", metrics)
-
-    # Empaquetamos preprocesador + modelo como un pipeline manual serializable.
-    from sklearn.pipeline import Pipeline
-
-    pipeline = Pipeline([("preprocessor", preprocessor), ("model", estimator)])
 
     artifact = {
         "pipeline": pipeline,

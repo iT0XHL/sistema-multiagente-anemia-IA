@@ -23,8 +23,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from _bootstrap import DATA_RAW, SAVED_MODELS_DIR
-from ml.evaluate_models import compute_metrics, print_report
-from ml.preprocessing_pipeline import CLASS_ORDER, load_dataset, make_pipeline, split_xy
+from ml.evaluate_models import print_report
+from ml.preprocessing_pipeline import CLASS_ORDER, load_dataset, split_xy
+from ml.training_utils import assemble_metrics, build_smote_pipeline
 
 MODEL_NAME = "random_forest"
 
@@ -41,21 +42,20 @@ def train(data_path: str = DATA_RAW, random_state: int = 42) -> dict:
         X, y, test_size=0.2, stratify=y, random_state=random_state
     )
 
+    # Sin class_weight: el balanceo lo aporta SMOTE (solo sobre train).
     estimator = RandomForestClassifier(
         n_estimators=300,
         max_depth=None,
         min_samples_leaf=2,
-        class_weight="balanced",
         n_jobs=-1,
         random_state=random_state,
     )
-    pipeline = make_pipeline(estimator)
+    pipeline = build_smote_pipeline(estimator, random_state=random_state)
 
-    print(f"[RF] Entrenando con {len(X_train)} muestras...")
+    print(f"[RF] Entrenando (SMOTE en train) con {len(X_train)} muestras...")
     pipeline.fit(X_train, y_train)
 
-    y_pred = pipeline.predict(X_test)
-    metrics = compute_metrics(y_test, y_pred, label_encoder)
+    metrics = assemble_metrics(pipeline, label_encoder, X_train, y_train, X_test, y_test)
     print_report("Random Forest", metrics)
 
     artifact = {

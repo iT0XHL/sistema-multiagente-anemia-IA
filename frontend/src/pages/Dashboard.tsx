@@ -3,6 +3,7 @@ import { Activity, Database } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
 import AnimatedCard from '../components/AnimatedCard'
+import ModelMetricsCard from '../components/dashboard/ModelMetricsCard'
 import DashboardCard from '../components/DashboardCard'
 import LoadingAnimation from '../components/LoadingAnimation'
 import { useDashboard } from '../hooks/useDashboard'
@@ -69,26 +70,16 @@ export default function Dashboard() {
         </AnimatedCard>
       )}
 
-      <AnimatedCard delay={0.15}>
-        <p className="mb-2 text-sm font-semibold text-slate-700">Modelos</p>
-        <div className="space-y-2">
-          {models.map((m) => (
-            <div
-              key={m.name}
-              className="flex items-center justify-between rounded-xl border border-slate-200 p-2 text-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
-            >
-              <span className="font-medium text-slate-700">{m.name}</span>
-              {m.trained ? (
-                <span className="text-xs text-slate-500">
-                  acc {m.metrics?.accuracy ?? '—'} · F1 {m.metrics?.f1_macro ?? '—'}
-                </span>
-              ) : (
-                <span className="chip bg-amber-100 text-amber-700">sin entrenar</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </AnimatedCard>
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-slate-800">Rendimiento de modelos</h3>
+        <p className="-mt-1 text-xs text-slate-400">
+          Métricas de entrenamiento y prueba (split estratificado 80/20, balanceo SMOTE solo en
+          train). Conmuta entre conjuntos en cada tarjeta.
+        </p>
+        {models.map((m, i) => (
+          <ModelMetricsCard key={m.name} model={m} delay={0.15 + i * 0.05} />
+        ))}
+      </div>
 
       <AnimatedCard delay={0.2}>
         <p className="mb-2 text-sm font-semibold text-slate-700">Logs recientes</p>

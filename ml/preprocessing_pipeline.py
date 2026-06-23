@@ -49,38 +49,29 @@ DX_LABELS_ES = {
 # ════════════════════════════════════════════════════════════════════
 #  1. Corrección de hemoglobina por altitud (OMS 2024 / MINSA)
 # ════════════════════════════════════════════════════════════════════
-# Tabla de ajustes (g/dL) por franja de altitud (m.s.n.m.), portada del
-# prototipo clínico original y alineada con RM-258-2020-MINSA.
-_ALTITUDE_ADJUSTMENT = [
-    (1000, 1500, -0.15),
-    (1500, 2000, -0.35),
-    (2000, 2500, -0.65),
-    (2500, 3000, -1.10),
-    (3000, 3500, -1.55),
-    (3500, 3600, -1.85),
-    (3600, 3700, -2.00),
-    (3700, 3800, -2.15),
-    (3800, 3900, -2.30),
-    (3900, 4000, -2.50),
-    (4000, 4100, -2.70),
-    (4100, 4200, -2.90),
-    (4200, 4300, -3.10),
-    (4300, 4400, -3.30),
-    (4400, 4500, -3.55),
-]
-_ALTITUDE_ADJUSTMENT_MAX = -3.80  # >= 4500 m.s.n.m.
+# Fórmula CONTINUA de ajuste por altitud, derivada por mínimos cuadrados
+# del propio dataset (RENIPRESS-Puno): el ajuste reproduce exactamente
+# `Hbc - Hemoglobina` con error < 1e-6 g/dL. Sustituye a la antigua tabla
+# escalonada para eliminar el train/serve skew (el modelo se entrena con
+# este mismo Hbc y la inferencia lo recalcula idéntico).
+#
+#   adj(h) = A·h² + B·h ,  con h = altitud_m / 1000  (km)
+#
+_ALT_COEF_QUAD = -0.030       # A · h²
+_ALT_COEF_LIN = -0.56384      # B · h
 
 
 def altitude_adjustment(altitude_m: float) -> float:
-    """Ajuste (negativo, g/dL) que se suma a la Hb observada según la altitud."""
-    if altitude_m is None or altitude_m <= 1000:
+    """Ajuste (negativo, g/dL) que se suma a la Hb observada según la altitud.
+
+    Función continua y monótona: 0 a nivel del mar y cada vez más negativa
+    con la altitud. Coincide con la corrección usada para generar `Hbc` en
+    el dataset de entrenamiento.
+    """
+    if altitude_m is None or altitude_m <= 0:
         return 0.0
-    for low, high, adj in _ALTITUDE_ADJUSTMENT:
-        if low <= altitude_m < high:
-            return adj
-    if altitude_m >= 4500:
-        return _ALTITUDE_ADJUSTMENT_MAX
-    return 0.0
+    h = altitude_m / 1000.0
+    return _ALT_COEF_QUAD * h * h + _ALT_COEF_LIN * h
 
 
 def correct_hemoglobin_for_altitude(hb: float, altitude_m: float) -> float:

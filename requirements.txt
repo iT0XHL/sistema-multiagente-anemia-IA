@@ -23,6 +23,11 @@ scikit-learn==1.6.0
 # ('super' object has no attribute '__sklearn_tags__'). No subir sin probar.
 xgboost==2.1.4
 joblib==1.4.2
+# Balanceo de clases (SMOTE). 0.13.0 es compatible con scikit-learn 1.6.x.
+imbalanced-learn==0.13.0
+
+# ── Cliente HTTP (agente Gemini) ─────────────────────────
+httpx==0.28.1
 
 # ── Explicabilidad (XAI) ─────────────────────────────────
 shap==0.46.0
@@ -37,4 +42,3 @@ ipykernel==6.29.5
 
 # ── Testing ──────────────────────────────────────────────
 pytest==8.3.4
-httpx==0.28.1
