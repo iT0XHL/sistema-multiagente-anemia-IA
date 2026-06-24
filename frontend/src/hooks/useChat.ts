@@ -8,7 +8,6 @@ import {
   serializeMessages,
 } from '../lib/conversation'
 import { loadLocal, saveLocal, STORAGE_KEYS } from '../lib/storage'
-import { runAgents } from '../services/api'
 import type {
   AgentDescriptor,
   AgentRunReport,
@@ -20,6 +19,7 @@ import type {
   ModelName,
 } from '../types'
 import { defaultClinicalForm, ejemploJuliaca } from '../types'
+import { runAgents, sendChatMessage } from '../services/api'
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
@@ -378,37 +378,83 @@ export function useChat() {
     if (t) setTitle(t)
   }, [])
 
-  const handleSendMessage = useCallback(() => {
+  const handleSendMessage = useCallback(async () => {
     const text = inputValue.trim()
+
     if (!text || loading) return
 
-    addMessage({ role: 'user', content: text })
-    setInputValue('')
+    addMessage({
+      role: 'user',
+      content: text,
+    })
 
+    setInputValue('')
     setShowTyping(true)
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
-    typingTimerRef.current = setTimeout(() => {
-      setShowTyping(false)
+
+    try {
 
       const lower = text.toLowerCase()
-      if (lower.includes('hola') || lower.includes('buenas') || lower.includes('ayuda')) {
-        addMessage({
-          role: 'assistant',
-          content: '¡Hola! Soy AnemIA, tu asistente clínico. Para comenzar, completa el formulario con los datos del paciente o carga el caso de ejemplo de Juliaca.',
-        })
-      } else if (lower.includes('ejemplo') || lower.includes('juliaca')) {
+
+      if (
+        lower.includes('ejemplo') ||
+        lower.includes('juliaca')
+      ) {
+
+        setShowTyping(false)
         loadExampleCase()
-      } else if (lower.includes('nuevo') || lower.includes('nueva consulta')) {
-        startNewConversation()
-      } else {
-        addMessage({
-          role: 'assistant',
-          content: 'He recibido tu mensaje. Si deseas registrar un nuevo caso clínico, completa el formulario clínico con los datos del paciente. También puedes escribir "cargar ejemplo" para una demostración.',
-        })
+        scrollToBottom()
+        return
       }
+
+      if (
+        lower.includes('nuevo') ||
+        lower.includes('nueva consulta')
+      ) {
+
+        setShowTyping(false)
+        startNewConversation()
+        scrollToBottom()
+        return
+      }
+
+      const response = await sendChatMessage(text)
+
+      setShowTyping(false)
+
+      addMessage({
+        role: 'assistant',
+        content:
+          response.response ||
+          'No pude generar una respuesta.',
+      })
+
       scrollToBottom()
-    }, 1200)
-  }, [inputValue, addMessage, loadExampleCase, startNewConversation, loading, scrollToBottom])
+
+    } catch (err: any) {
+
+      setShowTyping(false)
+
+      const detail =
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Error al comunicarse con Gemini.'
+
+      addMessage({
+        role: 'system',
+        content: `⚠ ${detail}`,
+      })
+
+      scrollToBottom()
+    }
+
+  }, [
+    inputValue,
+    loading,
+    addMessage,
+    loadExampleCase,
+    startNewConversation,
+    scrollToBottom,
+  ])
 
   return {
     messages,

@@ -28,6 +28,7 @@ from backend.app.api import (
 )
 from backend.app.core.config import get_settings
 from backend.app.core.database import init_db
+from backend.app.api import routes_chat
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("anemia")
@@ -64,6 +65,7 @@ app.include_router(routes_health.router)
 app.include_router(routes_prediction.router)
 app.include_router(routes_explainability.router)
 app.include_router(routes_agents.router)
+app.include_router(routes_chat.router)
 app.include_router(routes_dashboard.router)
 
 
