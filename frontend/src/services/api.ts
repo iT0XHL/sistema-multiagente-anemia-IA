@@ -17,7 +17,7 @@ import type {
 } from '../types'
 
 const baseURL =
-  (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) ||
+  (typeof poocess !== 'undefined' && process.env.REACT_APP_API_URL) ||
   'http://localhost:8000'
 
 export const api = axios.create({
@@ -79,3 +79,17 @@ export async function getHealth() {
 }
 
 // No hay endpoint /chat/message — el chat usa POST /agents/run
+
+export async function sendChatMessage(
+  message: string
+) {
+
+  const { data } = await api.post(
+    "/chat",
+    {
+      message
+    }
+  )
+
+  return data
+}
