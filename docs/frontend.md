@@ -27,7 +27,7 @@ frontend/
 │   ├── data/
 │   ├── mocks/
 │   └── styles/
-├── nginx.conf                   # Routing SPA + políticas de caché
+├── nginx.conf.template          # Routing SPA + caché (puerto ${PORT} vía envsubst)
 ├── webpack.config.js            # Configuración Webpack 5
 ├── tailwind.config.js           # Paleta de colores teal personalizada
 ├── tsconfig.json                # TypeScript (ES2020, strict, no emit)
@@ -202,9 +202,10 @@ Provee a todas las páginas mediante React Context:
 - Modo strict activado
 - `noEmit: true` (solo type-check, webpack transpila)
 
-### Nginx (`nginx.conf`)
+### Nginx (`nginx.conf.template`)
 
-- Puerto 3000
+- Puerto `${PORT}` (3000 en local; lo inyecta el PaaS en despliegue). La
+  plantilla se procesa con `envsubst` en el arranque del contenedor nginx.
 - Routing SPA: `try_files $uri $uri/ /index.html`
 - JS/CSS: sin caché con revalidación por ETag
 - Assets estáticos: 7 días de caché

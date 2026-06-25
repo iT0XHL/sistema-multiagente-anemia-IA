@@ -24,9 +24,10 @@ RUN npm ci
 # Copia el código fuente del frontend.
 COPY frontend/ ./
 
-# El webpack.config.js lee ../.env para obtener REACT_APP_API_URL.
-# Como ENV ya está seteada, el DefinePlugin la tomará desde process.env.
-COPY .env /app/.env
+# REACT_APP_API_URL llega como ENV (desde el ARG) y el DefinePlugin de Webpack
+# la incrusta en el bundle. NO se copia el .env de la raíz: está en .gitignore
+# y no existe en builds de PaaS (Railway). En su ausencia, loadEnv() del
+# webpack.config cae con gracia a process.env / al valor por defecto.
 
 # prebuild → npm run css (Tailwind → public/styles.css)
 # build    → webpack --mode production (dist/bundle.js)
@@ -35,7 +36,11 @@ RUN npm run build
 # ── Stage 2: serve ──────────────────────────────────────────
 FROM nginx:1.27-alpine
 
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+# Puerto de escucha: en local 3000; en Railway/PaaS lo sobrescribe $PORT.
+# La plantilla se procesa con envsubst en el arranque (entrypoint oficial de
+# nginx) y genera /etc/nginx/conf.d/default.conf con el puerto real.
+ENV PORT=3000
+COPY frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
 
 # Archivos estáticos: index.html + static/ + styles.css (generado por Tailwind).
 COPY --from=builder /app/frontend/public/ /usr/share/nginx/html/

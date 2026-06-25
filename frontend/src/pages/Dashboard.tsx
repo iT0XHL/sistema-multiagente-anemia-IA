@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
-import { Activity, Database } from 'lucide-react'
+import { Activity, Database, HardDrive } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 
 import AnimatedCard from '../components/AnimatedCard'
 import ModelMetricsCard from '../components/dashboard/ModelMetricsCard'
 import DashboardCard from '../components/DashboardCard'
 import LoadingAnimation from '../components/LoadingAnimation'
+import { useCaseStats } from '../hooks/useCaseStats'
 import { useDashboard } from '../hooks/useDashboard'
 import { diagnosisColors } from '../mocks/exampleCase'
 import { pageTransition } from '../pageTransition'
@@ -17,12 +18,83 @@ const labelToCode: Record<string, string> = {
   'Anemia Severa': 'AnemiaSevera',
 }
 
+type PersistenceTone = 'server' | 'local' | 'warn' | 'idle'
+
+interface PersistenceStatus {
+  tone: PersistenceTone
+  label: string
+  detail: string
+}
+
+const toneChip: Record<PersistenceTone, string> = {
+  server: 'bg-emerald-100 text-emerald-700',
+  local: 'bg-teal-100 text-teal-700',
+  warn: 'bg-amber-100 text-amber-700',
+  idle: 'bg-slate-100 text-slate-500',
+}
+
+/**
+ * Calcula el estado real de persistencia combinando dos señales: la BD del
+ * backend (`database`, de GET /dashboard) y el historial local del navegador
+ * (`totalCases`, mismo origen que la barra lateral). Nunca devuelve un texto
+ * fijo: refleja dónde viven de verdad los datos del usuario. La etiqueta del
+ * chip es corta (cabe en la tarjeta a media columna en móvil) y el detalle
+ * lleva la explicación completa.
+ */
+function describePersistence(
+  database: string | undefined,
+  totalCases: number,
+  backendLoading: boolean,
+): PersistenceStatus {
+  // 1) BD del servidor conectada → fuente de verdad en PostgreSQL.
+  if (database === 'connected') {
+    return {
+      tone: 'server',
+      label: 'Conectada',
+      detail: 'Base de datos PostgreSQL en el servidor',
+    }
+  }
+  // 2) Hay historial guardado en el navegador → persistencia local activa.
+  if (totalCases > 0) {
+    return {
+      tone: 'local',
+      label: 'Local',
+      detail:
+        database === 'unavailable'
+          ? 'Servidor sin BD · historial en este navegador'
+          : 'Historial guardado en este navegador',
+    }
+  }
+  // 3) Sin datos locales todavía: distinguimos «verificando», «BD caída» y «vacío».
+  if (backendLoading) {
+    return { tone: 'idle', label: 'Verificando…', detail: 'Consultando estado del servidor' }
+  }
+  if (database === 'unavailable') {
+    return {
+      tone: 'warn',
+      label: 'No disponible',
+      detail: 'Base de datos no disponible · se usará historial local',
+    }
+  }
+  return { tone: 'idle', label: 'Sin datos', detail: 'Aún no hay consultas registradas' }
+}
+
 export default function Dashboard() {
-  const { data, models, loading } = useDashboard()
+  const { data, models, loading: backendLoading } = useDashboard()
+  // Conteo y distribución salen del MISMO historial que la barra lateral
+  // (IndexedDB), no del backend: así el Panel nunca muestra 0 mientras existan
+  // consultas recientes.
+  const stats = useCaseStats()
 
-  if (loading) return <LoadingAnimation label="Cargando panel…" />
+  if (stats.loading) return <LoadingAnimation label="Cargando panel…" />
 
-  const pieData = Object.entries(data?.by_diagnosis ?? {}).map(([name, value]) => ({ name, value }))
+  const pieData = Object.entries(stats.byDiagnosis).map(([name, value]) => ({ name, value }))
+  const persistence = describePersistence(data?.database, stats.total, backendLoading)
+  const PersistIcon = persistence.tone === 'local' ? HardDrive : Database
+  const casesSubtitle =
+    stats.total > 0
+      ? `${stats.predictions} con diagnóstico`
+      : 'Registra un caso para empezar'
 
   return (
     <motion.div {...pageTransition} className="space-y-4">
@@ -30,24 +102,24 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-3">
         <DashboardCard
-          title="Predicciones registradas"
-          value={data?.total_predictions ?? 0}
+          title="Casos registrados"
+          value={stats.total}
+          subtitle={casesSubtitle}
           icon={<Activity size={18} />}
         />
         <AnimatedCard delay={0.05}>
-          <div className="flex items-center gap-2">
-            <Database size={18} className="text-slate-400" />
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <span className={`chip ${toneChip[persistence.tone]}`}>{persistence.label}</span>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500">{persistence.detail}</p>
+            </div>
             <span
-              className={`chip ${
-                data?.database === 'connected'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-100 text-slate-500'
-              }`}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"
+              aria-hidden="true"
             >
-              {data?.database === 'connected' ? 'PostgreSQL OK' : 'Sin base de datos'}
+              <PersistIcon size={18} />
             </span>
           </div>
-          <p className="mt-2 text-xs text-slate-400">Estado de persistencia</p>
         </AnimatedCard>
       </div>
 
@@ -79,6 +151,11 @@ export default function Dashboard() {
         {models.map((m, i) => (
           <ModelMetricsCard key={m.name} model={m} delay={0.15 + i * 0.05} />
         ))}
+        {!backendLoading && models.length === 0 && (
+          <p className="text-xs text-slate-400">
+            Métricas no disponibles (backend sin conexión o modelos sin entrenar).
+          </p>
+        )}
       </div>
 
       <AnimatedCard delay={0.2}>

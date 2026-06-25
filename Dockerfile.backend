@@ -25,9 +25,17 @@ COPY agents/ ./agents/
 COPY explainability/ ./explainability/
 COPY data/ ./data/
 
+# Entrena los modelos en BUILD para que la imagen sea autosuficiente: en
+# despliegues sin volumen (Railway) el contenedor arranca al instante y sin
+# gastar memoria entrenando en runtime. En local, el volumen ./ml/saved_models
+# del compose sombrea estos artefactos con los del host (reentrenar = borrarlos).
+# La capa se cachea: solo se reentrena si cambian data/ o ml/.
+RUN python ml/train_random_forest.py && python ml/train_xgboost.py
+
 EXPOSE 8000
 
-# Entrena cada modelo SOLO si falta su artefacto (con ./ml/saved_models montado,
-# reutiliza los modelos existentes y arranca al instante). `exec` deja a uvicorn
-# como PID 1 para un apagado limpio (SIGTERM de `docker compose down`).
-CMD ["sh", "-c", "[ -f ml/saved_models/random_forest.joblib ] || python ml/train_random_forest.py; [ -f ml/saved_models/xgboost.joblib ] || python ml/train_xgboost.py; exec uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"]
+# Railway (y otros PaaS) inyectan el puerto en $PORT; en local cae a 8000.
+# El guard `[ -f ... ]` deja el reentrenamiento como red de seguridad si los
+# artefactos no estuvieran presentes. `exec` deja a uvicorn como PID 1 para un
+# apagado limpio (SIGTERM de `docker compose down` / redeploy del PaaS).
+CMD ["sh", "-c", "[ -f ml/saved_models/random_forest.joblib ] || python ml/train_random_forest.py; [ -f ml/saved_models/xgboost.joblib ] || python ml/train_xgboost.py; exec uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

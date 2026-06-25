@@ -16,9 +16,9 @@ import type {
   ShapResult,
 } from '../types'
 
-const baseURL =
-  (typeof poocess !== 'undefined' && process.env.REACT_APP_API_URL) ||
-  'http://localhost:8000'
+// Webpack (DefinePlugin) reemplaza `process.env.REACT_APP_API_URL` por un
+// literal en build; si no se definió la variable, cae al backend local.
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000'
 
 export const api = axios.create({
   baseURL,
