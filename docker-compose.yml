@@ -38,6 +38,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Carga TODO el .env de la raíz (incluida GEMINI_API_KEY y la cadena de
+    # modelos) dentro del contenedor. Las claves repetidas en `environment:`
+    # tienen prioridad sobre `env_file`, así que los overrides de red Docker
+    # de abajo ganan.
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-anemia_db}
       CORS_ORIGINS: http://localhost:3000

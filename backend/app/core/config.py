@@ -10,6 +10,7 @@ import os
 from functools import lru_cache
 from typing import List
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = os.path.dirname(
@@ -32,6 +33,18 @@ class Settings(BaseSettings):
 
     # Base de datos
     database_url: str = "postgresql+psycopg2://anemia:anemia_secret@localhost:5432/anemia_db"
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_db_url(cls, v: str) -> str:
+        # Proveedores gestionados (Railway, Heroku…) entregan el esquema
+        # `postgres://`, que SQLAlchemy 2.0 ya no acepta. Lo normalizamos a
+        # `postgresql://` (psycopg2 es el driver por defecto). El formato local
+        # `postgresql+psycopg2://` no empieza por ese prefijo, así que queda
+        # intacto.
+        if v.startswith("postgres://"):
+            return "postgresql://" + v[len("postgres://") :]
+        return v
 
     # CORS (cadena separada por comas en el .env)
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
