@@ -124,7 +124,7 @@ python ml/etl_clean_dataset.py           # imputa, normaliza y deja el CSV listo
 **3. Entrenar los modelos** (requerido la primera vez; genera `ml/saved_models/*.joblib`):
 
 ```bash
-python ml/train_random_forest.py         # split 80/20 estratificado + SMOTE en train
+python ml/train_random_forest.py         # ambos datasets (2024+2025), split 80/20 + SMOTE en train
 python ml/train_xgboost.py
 python ml/compare_models.py              # opcional: compara y elige el mejor por F1 macro
 ```
@@ -172,9 +172,9 @@ docker compose up --build
 | PostgreSQL | `localhost:5433` (mapeado; interno `5432`) |
 
 > [!NOTE]
-> En Docker, `docker-compose.yml` **no inyecta el `.env`** al contenedor del backend (por
-> seguridad de las claves), por lo que el agente de recomendaciones usa el **fallback MINSA**.
-> Para usar Gemini, emplea el camino local.
+> En Docker, `docker-compose.yml` carga el `.env` de la raíz en el backend vía `env_file`,
+> por lo que el agente de recomendaciones usa **Gemini** si `GEMINI_API_KEY` está definida (si
+> no, cae al **fallback MINSA**). No pongas la clave en `docker-compose.yml`: déjala en `.env`.
 
 Comandos completos y guía de prueba manual en [`COMANDOS_EJECUCION.md`](COMANDOS_EJECUCION.md); instalación detallada en [`docs/setup.md`](docs/setup.md).
 
@@ -195,9 +195,9 @@ Documentación interactiva en `/docs`; ejemplos en [`docs/api.md`](docs/api.md).
 
 ## Dataset
 
-`data/dataset2024.csv` — export real de RENIPRESS-Puno usado para entrenar (≈ 41 000 registros tras limpieza). El objetivo es la **clasificación multiclase** de la severidad de anemia (`Dx_anemia`), muy desbalanceada (Normal ≈ 86 % · Severa ≈ 0.16 %).
+El entrenamiento combina **dos datasets** de RENIPRESS-Puno con el mismo esquema: `data/dataset2025.csv` (2025, curado a mano, ≈ 44 000 filas) y `data/dataset2024.csv` (2024, limpiado por ETL, ≈ 41 000 filas). Al unirlos se eliminan **3 137 duplicados exactos**, quedando **≈ 81 950 registros** para el split. El objetivo es la **clasificación multiclase** de la severidad de anemia (`Dx_anemia`), muy desbalanceada (Normal ≈ 86 % · Severa ≈ 0.13 %).
 
-El CSV se obtiene del crudo con `ml/etl_clean_dataset.py`, que **imputa** los vacíos de los programas sociales (`Juntos`/`SIS`/`Qaliwarma`) por moda, normaliza las etiquetas, recorta rangos imposibles y deduplica (el crudo original se respalda en `data/raw/`). `data/dataset.csv` (2025, curado a mano) se mantiene como referencia, y hay una muestra de 200 filas en `data/sample/sample_200.csv`. Variables, balanceo y métricas en [`docs/models.md`](docs/models.md).
+`data/dataset2024.csv` se obtiene del crudo con `ml/etl_clean_dataset.py`, que **imputa** los vacíos de los programas sociales (`Juntos`/`SIS`/`Qaliwarma`) por moda, normaliza las etiquetas, recorta rangos imposibles y deduplica (el crudo original se respalda en `data/raw/`). La consolidación de ambos datasets y el deduplicado exacto **previo al split** los realiza `load_datasets()` en `ml/preprocessing_pipeline.py`. Hay una muestra de 200 filas en `data/sample/sample_200.csv`. Variables, balanceo y métricas en [`docs/models.md`](docs/models.md).
 
 **Caso de ejemplo (Juliaca):**
 
@@ -215,7 +215,7 @@ agents/           6 agentes + orquestador · agents/llm/ (cliente Gemini)
 ml/               ETL, preprocesamiento, entrenamiento RF/XGB (SMOTE), evaluación e inferencia
 explainability/   SHAP y LIME
 database/         schema.sql, seed.sql, migraciones (Alembic)
-data/             dataset2024.csv (entrenamiento) · raw/ (crudo) · sample/
+data/             dataset2025.csv + dataset2024.csv (entrenamiento) · raw/ (crudo) · sample/
 notebooks/        EDA, entrenamiento, XAI y demo del pipeline
 docs/             documentación técnica
 docker-compose.yml · Dockerfile.* · pyproject.toml · requirements.txt · .env(.example)

@@ -13,8 +13,9 @@ desde aquí para evitar duplicar la lógica.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -131,6 +132,36 @@ def load_dataset(path: str) -> pd.DataFrame:
         df[col] = df[col].fillna(0).astype(int)
     df = df[df[TARGET].isin(CLASS_ORDER)].reset_index(drop=True)
     return df
+
+
+def load_datasets(paths: List[str]) -> pd.DataFrame:
+    """Carga y concatena varios CSV con el mismo esquema en un único DataFrame.
+
+    Cada archivo pasa primero por `load_dataset()` (misma validación y
+    normalización), luego se consolidan y se eliminan los duplicados EXACTOS
+    entre archivos. El deduplicado se hace UNA sola vez sobre el consolidado,
+    antes del `train_test_split`, para que una misma observación no pueda caer
+    a la vez en train y en test (fuga de datos).
+
+    Se añade una columna auxiliar `_source` para trazabilidad en logs; no entra
+    como feature porque `split_xy()` y el `ColumnTransformer` seleccionan
+    columnas explícitamente vía `FEATURE_COLUMNS`.
+    """
+    frames = []
+    for p in paths:
+        df = load_dataset(p)
+        df["_source"] = os.path.basename(p)
+        frames.append(df)
+    combined = pd.concat(frames, ignore_index=True)
+
+    before = len(combined)
+    real_cols = [c for c in combined.columns if c != "_source"]
+    combined = combined.drop_duplicates(subset=real_cols).reset_index(drop=True)
+    print(
+        f"[load] {len(paths)} datasets -> {before} filas, "
+        f"{before - len(combined)} duplicados exactos eliminados -> {len(combined)}"
+    )
+    return combined
 
 
 def split_xy(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:

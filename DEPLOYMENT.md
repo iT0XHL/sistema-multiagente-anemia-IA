@@ -156,9 +156,9 @@ dice **"Conectada"** (Postgres) o **"Local"** (historial del navegador).
 
 ## 7. Notas y solución de problemas
 
-- **El build del backend tarda**: entrena RF + XGBoost desde
-  `data/dataset2024.csv` durante el build. Railway cachea la capa: solo
-  reentrena si cambian `data/` o `ml/`.
+- **El build del backend tarda**: entrena RF + XGBoost desde **ambos datasets**
+  (`data/dataset2025.csv` + `data/dataset2024.csv`) durante el build. Railway cachea
+  la capa: solo reentrena si cambian `data/` o `ml/`.
 - **El backend se reinicia / OOM**: súbele memoria al servicio. Inferencia con
   SHAP/LIME es lo más pesado.
 - **CORS bloqueado en el navegador**: `CORS_ORIGINS` del backend debe ser

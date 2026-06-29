@@ -52,7 +52,9 @@ uv run python ml/etl_clean_dataset.py
 
 ### 1.3. Entrenar los modelos (genera ml/saved_models/\*.joblib)
 
-Split 80/20 estratificado + **SMOTE solo sobre el conjunto de entrenamiento**:
+Entrena con **ambos datasets combinados** (`data/dataset2025.csv` + `data/dataset2024.csv`,
+≈ 82k registros tras eliminar los duplicados exactos), split 80/20 estratificado +
+**SMOTE solo sobre el conjunto de entrenamiento**:
 
 ```bash
 uv run python ml/train_random_forest.py
@@ -107,8 +109,9 @@ docker compose --profile tools up --build
 | PostgreSQL         | localhost:**5433** (postgres/postgres) · puerto interno del contenedor 5432 |
 | pgAdmin (opcional) | http://localhost:5050                                                       |
 
-> En Docker el `.env` **no se inyecta** al contenedor del backend (por seguridad de las
-> claves), así que el agente usa el **fallback MINSA**. Para usar Gemini, ejecuta en local (§1).
+> En Docker, `docker-compose.yml` carga el `.env` de la raíz en el backend vía `env_file`,
+> así que el agente usa **Gemini** si `GEMINI_API_KEY` está definida (si no, el **fallback MINSA**).
+> No pongas la clave en `docker-compose.yml`; déjala en `.env`.
 
 Detener:
 

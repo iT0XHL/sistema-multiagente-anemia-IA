@@ -1,9 +1,9 @@
 # Modelos de ML · AnemIA
 
 ## Problema
-Clasificación **multiclase** de severidad de anemia a partir del dataset real
-(44k registros, Puno): `Normal · AnemiaLeve · AnemiaModerada · AnemiaSevera`
-(distribución muy desbalanceada).
+Clasificación **multiclase** de severidad de anemia a partir de los datos reales
+(≈ 82k registros combinados de 2024 + 2025, Puno): `Normal · AnemiaLeve ·
+AnemiaModerada · AnemiaSevera` (distribución muy desbalanceada).
 
 ## Features (`ml/preprocessing_pipeline.py`)
 - **Numéricas** (escaladas): `EdadMeses`, `Hemoglobina`, `AlturaREN`, `Hbc`.
@@ -18,10 +18,13 @@ dataset (error < 1e-6 g/dL), de modo que el `Hbc` de entrenamiento e
 inferencia coinciden (sin train/serve skew).
 
 ## Datos
-El entrenamiento usa `data/dataset2024.csv`, limpiado por
-`ml/etl_clean_dataset.py` (imputación de programas sociales por moda,
-normalización de etiquetas, deduplicado). Distribución muy desbalanceada
-(Normal ≈ 86 %, Severa ≈ 0.16 %).
+El entrenamiento combina **dos datasets** con el mismo esquema:
+`data/dataset2025.csv` (curado a mano) y `data/dataset2024.csv` (limpiado por
+`ml/etl_clean_dataset.py`: imputación de programas sociales por moda,
+normalización de etiquetas, deduplicado). `load_datasets()`
+(`ml/preprocessing_pipeline.py`) los une y elimina los **duplicados exactos**
+(≈ 3 100) **antes del split**, quedando ≈ 81 950 filas. Distribución muy
+desbalanceada (Normal ≈ 86 %, Severa ≈ 0.13 %).
 
 ## Modelos
 | Modelo | Script | Configuración clave |
