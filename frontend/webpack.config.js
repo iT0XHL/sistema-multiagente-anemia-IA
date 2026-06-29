@@ -82,6 +82,7 @@ module.exports = (_, argv) => {
       static: { directory: path.join(__dirname, 'public') },
       historyApiFallback: true, // soporte para rutas de React Router
       hot: false,
+      allowedHosts: 'all', 
       // La ruta del proyecto contiene "!" (¡KEEP OUT!), carácter que Webpack
       // reserva como separador de loaders. webpack-dev-server inyecta su
       // "client" (recarga en vivo + overlay) por RUTA ABSOLUTA; al contener "!"
