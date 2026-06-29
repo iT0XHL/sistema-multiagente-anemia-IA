@@ -5,7 +5,8 @@ Entrena un XGBClassifier multiclase para la severidad de anemia y guarda
 el artefacto en `ml/saved_models/`.
 
 Uso:
-    python ml/train_xgboost.py [--data data/raw/dataset.csv]
+    python ml/train_xgboost.py                       # ambos datasets (default)
+    python ml/train_xgboost.py --data data/dataset2025.csv  # uno o varios CSV
 """
 from __future__ import annotations
 
@@ -21,17 +22,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBClassifier
 
-from _bootstrap import DATA_RAW, SAVED_MODELS_DIR
+from _bootstrap import DATA_FILES, SAVED_MODELS_DIR
 from ml.evaluate_models import print_report
-from ml.preprocessing_pipeline import CLASS_ORDER, load_dataset, split_xy
+from ml.preprocessing_pipeline import CLASS_ORDER, load_datasets, split_xy
 from ml.training_utils import assemble_metrics, build_smote_pipeline
 
 MODEL_NAME = "xgboost"
 
 
-def train(data_path: str = DATA_RAW, random_state: int = 42) -> dict:
-    print(f"[XGB] Cargando dataset desde: {data_path}")
-    df = load_dataset(data_path)
+def train(data_paths: list[str] = DATA_FILES, random_state: int = 42) -> dict:
+    print(f"[XGB] Cargando datasets desde: {data_paths}")
+    df = load_datasets(data_paths)
     X, y_raw = split_xy(df)
 
     label_encoder = LabelEncoder().fit(CLASS_ORDER)
@@ -82,6 +83,9 @@ def train(data_path: str = DATA_RAW, random_state: int = 42) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Entrena XGBoost para AnemIA")
-    parser.add_argument("--data", default=DATA_RAW, help="Ruta al CSV de entrenamiento")
+    parser.add_argument(
+        "--data", nargs="+", default=DATA_FILES,
+        help="Uno o varios CSV de entrenamiento (default: ambos años combinados)",
+    )
     args = parser.parse_args()
     train(args.data)

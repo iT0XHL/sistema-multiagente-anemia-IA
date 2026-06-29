@@ -12,4 +12,10 @@ if REPO_ROOT not in sys.path:
 SAVED_MODELS_DIR = os.path.join(REPO_ROOT, "ml", "saved_models")
 # Dataset de entrenamiento: el export 2024 limpiado por ml/etl_clean_dataset.py.
 DATA_RAW = os.path.join(REPO_ROOT, "data", "dataset2024.csv")
+# Conjunto completo de entrenamiento: ambos años combinados (~80k registros)
+# tras eliminar duplicados exactos. Usado por defecto por los entrenadores.
+DATA_FILES = [
+    os.path.join(REPO_ROOT, "data", "dataset2025.csv"),
+    os.path.join(REPO_ROOT, "data", "dataset2024.csv"),
+]
 os.makedirs(SAVED_MODELS_DIR, exist_ok=True)
